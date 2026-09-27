@@ -117,33 +117,16 @@ If it's rejected with `403` or `permission denied`, the PC's GitHub account has 
 `innovative-saswata15/Jetson-ORB-SLAM3-Hardware`. The repo owner must add it as a collaborator,
 or push from the owner's account.
 
-### B2. Log the Jetson into GitHub (once) 🤖
-The repo is private, so the Jetson needs credentials to pull. That's why `git clone` asked for a
-username earlier.
+### B2. GitHub login on the Jetson: only if git asks 🤖
+Pulling works without any login, as the first pull showed, and the runbook never pushes from the
+Jetson (see E3). **Skip this step** unless a `git pull` ever stops to ask for a username.
+
+If it does:
 ```bash
 sudo apt install -y gh
-gh auth login
+gh auth login      # GitHub.com -> HTTPS -> Yes, authenticate Git -> Login with a web browser
+gh auth status     # "Logged in to github.com as <account>"
 ```
-Answer the prompts:
-1. **GitHub.com**, then **HTTPS**.
-2. **Yes** to "Authenticate Git with your GitHub credentials".
-3. **Login with a web browser**. It shows a one-time code; on the PC, open
-   <https://github.com/login/device>, enter the code and approve.
-
-```bash
-gh auth status
-git -C ~/Jetson-ORB-SLAM3-Hardware remote -v
-```
-**✅ Check:**
-- `gh auth status` shows `Logged in to github.com as <account>`;
-- the remote starts with `https://github.com/`.
-
-If it starts with `git@github.com:` (SSH), switch it:
-```bash
-git -C ~/Jetson-ORB-SLAM3-Hardware remote set-url origin \
-    https://github.com/innovative-saswata15/Jetson-ORB-SLAM3-Hardware.git
-```
-If `gh auth login` gives no "Authenticate Git" option (older `gh`), run `gh auth setup-git`.
 
 ### B3. Pull 🤖
 ```bash
@@ -170,8 +153,8 @@ already exist on the Jetson. Move the listed files aside (e.g. `mv plan plan.old
 - **Edit tracked files only on the PC**, then commit, push, and `git pull --ff-only` on the
   Jetson. Then pulls always fast-forward.
 - After a pull that changes C++ code, rebuild: `cmake --build ~/Jetson-ORB-SLAM3-Hardware/build -j2`.
-- Files created *on the Jetson*, like the calibration file in Part E, are committed from the
-  Jetson and pulled on the PC (E3).
+- Files created *on the Jetson*, like the calibration file in Part E, are copied to the PC and
+  committed there (E3).
 
 ---
 
@@ -432,21 +415,27 @@ grep -E '^(Camera1\.(fx|fy|cx|cy)|Stereo\.b|Stereo\.ThDepth|Camera\.(width|heigh
 - `Stereo.ThDepth: 40.0`, `Camera.width: 640`, `Camera.height: 480` and `Camera.fps: 30` are
   unchanged.
 
-### E3. Commit the calibration file 🤖, then pull it on the PC 🖥️
-The file belongs to this camera unit, so it's versioned like everything else:
+### E3. Commit the calibration file (via the PC)
+The file belongs to this camera unit, so it's versioned like everything else. Pushing needs a
+GitHub login, and we keep all commits on the PC, so copy the file there first:
 ```bash
-# 🤖 Jetson
-cd ~/Jetson-ORB-SLAM3-Hardware
+# 🖥️ PC
+cd ~/Desktop/code/Jetson-ORB-SLAM3-Hardware
+scp orb-slam3@<jetson-ip>:Jetson-ORB-SLAM3-Hardware/Examples/Stereo/RealSense_D435.yaml Examples/Stereo/
 git add Examples/Stereo/RealSense_D435.yaml
 git commit -m "Calibration for our D435 (serial <your serial from E1>)"
 git push origin main
-# 🖥️ PC
-cd ~/Desktop/code/Jetson-ORB-SLAM3-Hardware && git pull --ff-only origin main
 ```
-**✅ Check:** `git log --oneline -1` shows the same commit on both machines.
-
-If the Jetson asks for a name and email: `git config --global user.name "<name>"` and
-`git config --global user.email "<email>"`, then commit again.
+```bash
+# 🤖 Jetson: its untracked copy is identical, so remove it and pull the committed one
+cd ~/Jetson-ORB-SLAM3-Hardware
+rm Examples/Stereo/RealSense_D435.yaml
+git pull --ff-only origin main
+git log --oneline -1
+```
+**✅ Check:**
+- `git log --oneline -1` shows the same commit on both machines;
+- the E2 `grep` on the Jetson still shows your values.
 
 **📋 Send:** the E1 and E2 `grep` output.
 
@@ -659,7 +648,7 @@ rsync -a orb-slam3@<jetson-ip>:runs orb-slam3@<jetson-ip>:evidence ~/Desktop/jet
 | Symptom | Fix |
 |---|---|
 | `HTTP Error 429` | The ETH server is rate-limiting. Wait an hour and retry once; else use the PC fallback in C1 |
-| `git pull` asks for a username/password | Not logged in: B2 (`gh auth login`) |
+| `git pull` asks for a username/password | B2 (`gh auth login`); also check the remote URL is spelled correctly (`git remote -v`) |
 | `git pull` refuses: not a fast-forward | A tracked file was edited on the Jetson. `git status`; move the edit to the PC, then `git checkout -- <file>` and pull |
 | `no DISPLAY and no xvfb-run` | `sudo apt install xvfb` (A4) |
 | Build killed / Jetson freezes | `JOBS=1`, or `make -j1` / `cmake --build build -j1` |
