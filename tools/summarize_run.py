@@ -7,9 +7,9 @@ Each RUN_DIR is a folder written by stereo_realsense_D435_rover (console.log, ev
 keyframes.txt). Prints one line per run, so every comparison is computed the same way.
 
 End-point error: runs start on a floor mark, go round the loop, pass the mark again and end a
-few metres further along the start of the route (ORB-SLAM3 confirms a loop only after
-recognising the place in 3 consecutive new keyframes, so the camera must keep moving over the
-start area). The error is the distance from the last keyframe to the nearest keyframe in the
+few metres further along the start of the route (ORB-SLAM3 confirms a loop only after 3
+matches with the old place, which needs several keyframes over the start area, so the camera
+must keep moving there). The error is the distance from the last keyframe to the nearest keyframe in the
 first third of the route: after a correct loop closure the two passes lie on top of each other.
 It is meaningful only when the run is not split (a new map that never merged back).
 """

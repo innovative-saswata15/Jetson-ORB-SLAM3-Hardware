@@ -220,7 +220,7 @@ Run with the original driver on the virtual screen (`DISPLAY=:1`), recorded thro
 | `GPU ORB enabled` | yes |
 | Dropped frames | 1665 in total, including 317 during the vocabulary load. During tracking, 1290 × "1 dropped" and 29 × "2 dropped" |
 | `tegrastats.log` | 240 lines (it ran from before the driver started until after it stopped) |
-| `PR: Loop detected with Reffine Sim3` | **0**. This is printed from the second consecutive recognition onwards, so the start area was never recognised twice in a row before tracking was lost |
+| `PR: Loop detected with Reffine Sim3` | **0**. This is printed only when matches are collected one at a time over new keyframes, so the place wasn't being recognised that way before tracking was lost |
 
 **What the log shows:**
 - **Processing was a steady ≈15 fps** (every other frame skipped), with very few double skips. So
@@ -233,11 +233,20 @@ Run with the original driver on the virtual screen (`DISPLAY=:1`), recorded thro
 **Two causes:**
 1. **Tracking lost in the final approach or turn.** At ≈15 fps, quick turns and hand shake change
    the view a lot between processed frames.
-2. **The walk ended standing still on the X.** That was our instruction, and it was wrong. ORB-SLAM3
-   confirms a loop only after recognising the place in **3 consecutive new keyframes**
-   (`mnLoopNumCoincidences >= 3`, [src/LoopClosing.cc:444](../src/LoopClosing.cc#L444)), and it
-   only creates keyframes while the camera moves. Unconfirmed recognitions are printed as
-   `PR: Loop detected with Reffine Sim3`.
+2. **The walk ended standing still on the X.** That was our instruction, and it was wrong.
+   ORB-SLAM3 confirms a loop only after **3 matches** with the old place, collected either:
+   - **at once**, from the current keyframe's neighbouring keyframes
+     (`DetectCommonRegionsFromBoW` returns `nNumCoincidences >= 3`, in
+     [src/LoopClosing.cc](../src/LoopClosing.cc)); or
+   - **one at a time** over consecutive new keyframes (`mnLoopNumCoincidences >= 3`,
+     [src/LoopClosing.cc:444](../src/LoopClosing.cc#L444)). Each partial step prints
+     `PR: Loop detected with Reffine Sim3`.
+
+   Both need several keyframes around the start area, and keyframes are only made while the
+   camera moves.
+
+   (We first wrote "3 consecutive new keyframes" only; attempt 2 showed the "at once" path, and
+   the documents were corrected.)
 
 **Changes made:**
 - **Walk and drive procedure** (runbook F3 and I2, stage1.md Step 4 and 4.6, plan.md
@@ -253,7 +262,31 @@ Run with the original driver on the virtual screen (`DISPLAY=:1`), recorded thro
   - a run ending on its start gives 5 cm, as before;
   - a 42 m loop ending 2 m past the start, 3 cm off the first pass, gives 3 cm.
 
-**Next:** attempt 2 with the new procedure.
+---
+
+## 11. First live SLAM walk, attempt 2: **loop closed, Milestone 1 passed**
+
+Same setup as attempt 1: the original driver, the virtual screen, recorded through VNC. Attempt
+1's log was kept as `~/evidence/m1/live_m1_attempt1.log`. The walk used the corrected procedure:
+- both hands on the camera;
+- very slow turns;
+- back over the X facing the arrow, then 2–3 m further along the start of the route.
+
+| Check | Result |
+|---|---|
+| `*Loop detected` | **1** ✅ (log line 1154) |
+| `Stored map with ID` | **0** ✅: tracking held for the whole walk |
+| Maps | **one**, started with 841 points (log line 355) |
+| `GPU ORB enabled` | yes |
+| `dropped frs` lines | 1098 (≈15 fps processing, as expected) |
+| `PR: Loop detected with Reffine Sim3` | 0: the loop was confirmed **at once**, from neighbouring keyframes |
+
+**Milestone 1 is complete:** this repository's GPU ORB-SLAM3, unmodified, runs live on the Jetson
+Orin Nano with our D435 and our calibration file. It tracks a handheld walk without loss and
+closes the loop. The evidence:
+- on the PC: the screen recording of the VNC window;
+- on the Jetson, in `~/evidence/m1/`: `live_m1.log`, `live_m1_attempt1.log`, `tegrastats.log`,
+  `euroc_gpu.log` and `euroc_src.log`.
 
 ---
 
@@ -263,5 +296,7 @@ Run with the original driver on the virtual screen (`DISPLAY=:1`), recorded thro
 - ✅ Part V: the virtual screen works (camera feed visible in VNC, recording works).
 - ❌ Part F attempt 1: no loop closure (tracking lost near the end, and the walk ended standing
   still). See section 10.
-- ⏳ **Next: Part F attempt 2** with the corrected walk (runbook F3). This completes Milestone 1.
+- ✅ **Part F attempt 2: loop closed, no tracking loss. Milestone 1 complete** (section 11).
+- ⏳ **Next: Milestone 2** on the rover, route A. Part G (rover-driver bench tests) is needed only
+  for the "with measurements" option; then Part H (mount, power, first drive) and Part I.
 - Then Milestone 2 on the rover: route A only, since Stage 2 isn't planned now.

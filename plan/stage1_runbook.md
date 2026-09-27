@@ -24,7 +24,7 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
 | D | Build from source with RealSense support | 2–3 h (mostly waiting) | ✅ done: ATE 4.06 cm. librealsense and Pangolin were already installed |
 | E | Our D435's calibration file | 15 min | ✅ done: commit `d1821b9` |
 | V | Virtual screen over VNC: **our only display** | 15 min | ✅ done: the driver's windows and live camera image show in VNC, and recording the VNC window works |
-| F | Live handheld run (original driver): **Milestone 1** | 30 min | ⏳ |
+| F | Live handheld run (original driver): **Milestone 1** | 30 min | ✅ **passed on attempt 2**: loop closed, no tracking loss |
 | G | Rover driver bench tests: only if Milestone 2 should produce saved trajectories and numbers | 30 min | optional |
 | H | Mount, power, first rover drive | ½–1 day | |
 | I | Route A closed-loop runs: **Milestone 2** | ½ day | |
@@ -592,9 +592,11 @@ recording.
 4. Come back to the X facing the arrow, and **don't stop there: carry on slowly along the first
    2–3 m of your original route**, the same way you started. `*Loop detected` should appear during
    this part.
-   - **Why:** ORB-SLAM3 confirms a loop only after recognising the place in **3 consecutive new
-     keyframes** ([src/LoopClosing.cc:444](../src/LoopClosing.cc#L444)), and new keyframes are
-     only made while the camera moves. Standing still at the X gives it at most one chance.
+   - **Why:** ORB-SLAM3 confirms a loop only after **3 matches** with the old place ([src/LoopClosing.cc](../src/LoopClosing.cc), `DetectCommonRegionsFromBoW` and line 444).
+     It collects them either at once, from the current keyframe's neighbouring keyframes, or one
+     at a time over consecutive new keyframes. Both need several keyframes covering the start
+     area, and keyframes are only made while the camera moves. Standing still at the X doesn't
+     create them.
 5. Stop walking, and click **Stop** in the Map Viewer menu, in the VNC window. Ctrl-C does *not*
    stop this driver.
 6. Stop tegrastats with `kill %1` in the SSH session, and stop the screen recording on the PC.
@@ -605,7 +607,7 @@ grep -cE "\*Loop detected" ~/evidence/m1/live_m1.log            # >= 1
 grep -cE "Stored map with ID" ~/evidence/m1/live_m1.log          # ideally 0
 grep -E "GPU ORB enabled" ~/evidence/m1/live_m1.log | head -1
 grep -c "dropped frs" ~/evidence/m1/live_m1.log                  # ~1 per processed frame at ~15 fps
-grep -c "PR: Loop detected with Reffine Sim3" ~/evidence/m1/live_m1.log   # partial recognitions (need 3 in a row)
+grep -c "PR: Loop detected with Reffine Sim3" ~/evidence/m1/live_m1.log   # partial matches collected one at a time (0 is normal if confirmed at once)
 cp ~/euroc_gpu.log ~/euroc_src.log ~/evidence/m1/ ; ls ~/evidence/m1
 ```
 **✅ Check (Milestone 1 pass):**
@@ -624,6 +626,11 @@ cp ~/euroc_gpu.log ~/euroc_src.log ~/evidence/m1/ ; ls ~/evidence/m1
   non-zero `PR: Loop detected` count means it was recognising the place. Continue further along
   the start of the route next time.
 - In any case, check the room has texture along the whole loop.
+
+**Our attempt 2** (2026-09-27) **passed**, after the walk procedure was corrected:
+- `*Loop detected` 1, `Stored map with ID` 0 (tracking held for the whole walk), and one map
+  (started with 841 points).
+- The loop was confirmed at once, from neighbouring keyframes, so there were 0 `PR:` lines.
 
 **Our attempt 1** (2026-09-27) failed this way. Tracking held for most of the ~60 s walk and was
 lost near the end, during the return to the X: `Stored map with ID: 0` came at log line 1289 of

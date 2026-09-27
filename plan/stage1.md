@@ -15,7 +15,7 @@ actually happened, with real outputs, is in [progress_log.md](progress_log.md).
 
 | | Proves | Rough time | Status |
 |---|---|---|---|
-| **Milestone 1**: handheld | The repo runs on our Jetson with our camera, live | 1–2 days | Steps 1–3 done; Step 4 next |
+| **Milestone 1**: handheld | The repo runs on our Jetson with our camera, live | 1–2 days | ✅ **done** (Step 4 passed on attempt 2) |
 | **Milestone 2**: on the rover | The same on the target vehicle | 2–4 days | not started |
 
 **What we add to the repo in this stage** (the library under `src/`, `include/` and `Thirdparty/`
@@ -298,16 +298,18 @@ Stereo needs no initialisation motion: the map starts from the first frame.
 2. Walk slowly (≤ 0.5 m/s) and turn gently. Keep the camera level and pointing forward.
 3. Walk a loop of ~10–20 m around the room, come back over the start point facing the same way,
    and **keep walking slowly along the first 2–3 m of the route**. ORB-SLAM3 confirms a loop only
-   after recognising the place in 3 consecutive new keyframes
-   ([src/LoopClosing.cc:444](../src/LoopClosing.cc#L444)), and keyframes are only made while the
-   camera moves, so stopping on the start point isn't enough.
+   after 3 matches with the old place, collected either at once from neighbouring keyframes or
+   one at a time over new keyframes ([src/LoopClosing.cc](../src/LoopClosing.cc), `DetectCommonRegionsFromBoW` and line 444). Both need several keyframes covering
+   the start area, and keyframes are only made while the camera moves, so stopping on the start
+   point isn't enough.
 4. Hold the camera with both hands, and turn very slowly. Most tracking losses happen in turns.
 5. Press **Stop** in the viewer menu. **Ctrl-C doesn't stop this driver**: it prints "Finishing
    session" and carries on, because its main loop only checks `SLAM.isShutDown()`.
 6. `kill %1` to stop `tegrastats`.
 
 (Our first attempt stood still on the start point at the end, and also lost tracking during the
-final turn; no loop closed. See [progress_log.md](progress_log.md), section 10.)
+final turn; no loop closed. The second attempt, with this procedure, closed the loop with no
+tracking loss. See [progress_log.md](progress_log.md), sections 10–11.)
 
 **Pass:**
 - `GPU ORB enabled` in the log;

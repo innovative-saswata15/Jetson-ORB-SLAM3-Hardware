@@ -110,8 +110,8 @@ the results.
      3.6 cm);
   2. ✅ build from source with RealSense support: **4.06 cm** ATE;
   3. ✅ write our D435's calibration file;
-  4. ⏳ walk a loop with the original live driver, and check that it closes. It uses the virtual screen
-     over VNC, which is set up and working.
+  4. ✅ walk a loop with the original live driver, and check that it closes: **passed on attempt
+     2**, over the virtual screen.
 - **Milestone 2, rover:**
   - rigid mount and power;
   - **route A** (closed loop), 3 runs;
@@ -158,11 +158,11 @@ the results.
 | Rover driver | ✅ built and working (E1 run). Optional from here on |
 | Live tracking speed | ≈15 fps effective (every other 30 fps frame skipped). Fine at slow speeds |
 | Virtual screen over VNC (runbook V) | ✅ working: the driver's windows and live camera image show in VNC; recording the VNC window works |
-| First live SLAM walk (runbook F), **Milestone 1** | ❌ attempt 1: no loop (tracking lost near the end, and the walk ended standing still). Procedure corrected. ⏳ **attempt 2 next** |
+| First live SLAM walk (runbook F), **Milestone 1** | ✅ **passed on attempt 2**: `*Loop detected`, no tracking loss, one map. Attempt 1 failed (tracking lost near the end, and the walk ended standing still); the procedure was corrected |
 | Milestone 2 (rover, route A) | not started |
 
-**Next action:** runbook Part F, attempt 2, with the corrected walk (F3): slow turns, both hands,
-and continue 2–3 m past the X before stopping.
+**Next action: Milestone 2** on the rover (runbook Parts H and I; Part G only for the "with
+measurements" option).
 
 ## Conventions used in all stages
 
@@ -173,7 +173,8 @@ and continue 2–3 m past the X before stopping.
 - **Numbers come from `tools/summarize_run.py`,** so every comparison is computed the same way.
 - **Driving / walking:** ≤ 0.5 m/s, and turns ≤ 30°/s, turned slowly. At the end, pass over the
   start mark and **continue 2–3 m along the start of the route** before stopping. ORB-SLAM3
-  confirms a loop only after 3 consecutive recognitions, which needs the camera moving.
+  confirms a loop only after 3 matches with the old place, which needs several keyframes over
+  the start area, which in turn needs the camera moving.
 
 ## Main risks (details in each stage document)
 
