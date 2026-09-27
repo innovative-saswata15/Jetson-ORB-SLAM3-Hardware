@@ -29,7 +29,8 @@ stays untouched):
 
 **Display: a virtual screen over VNC. No monitor is used.** The original driver needs a display
 (its viewer and Stop button). The Jetson runs a **virtual screen** (Xvfb + openbox + x11vnc), which
-the PC shows through an SSH tunnel with TigerVNC. Every program with a window is started over SSH
+the PC shows through an SSH tunnel with TigerVNC (`tigervnc` on Fedora, `tigervnc-viewer` on
+Ubuntu). Every program with a window is started over SSH
 with `DISPLAY=:1` in front. See [runbook Part V](stage1_runbook.md#part-v-virtual-screen-over-vnc-our-display).
 
 ---
@@ -321,8 +322,9 @@ tracking loss. See [progress_log.md](progress_log.md), sections 10–11.)
 **Evidence to keep:**
 - on the Jetson, in `~/evidence/m1/`: copies of `~/euroc_gpu.log` and `~/euroc_src.log` (and
   `~/euroc_cpu.log` if run), plus `live_m1.log` and `tegrastats.log` from this run;
-- on the PC: a **screen recording of the VNC window** during the loop (Fedora's GNOME recorder,
-  Ctrl+Shift+Alt+R). The original driver saves no trajectory, so this video is the M1 evidence.
+- on the PC: a **screen recording of the VNC window** during the loop. On Fedora or Ubuntu with
+  GNOME, use Ctrl+Shift+Alt+R (or Print Screen, then the video option); OBS Studio also works on
+  both. The original driver saves no trajectory, so this video is the M1 evidence.
 
 **Milestone 1 is done** when Steps 1–4 pass.
 

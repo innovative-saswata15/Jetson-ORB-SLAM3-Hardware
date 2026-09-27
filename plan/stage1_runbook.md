@@ -4,7 +4,14 @@ The step-by-step companion to [stage1.md](stage1.md), which explains the *why*. 
 top to bottom. Every step ends with a **✅ Check**. Don't move on until it passes. At each
 **📋 Send** checkpoint, paste the output back for review.
 
-- **Where commands run:** 🖥️ **PC** means your Fedora PC, in `~/Desktop/code/Jetson-ORB-SLAM3-Hardware`.
+- **Where commands run:** 🖥️ **PC** means your PC, in `~/Desktop/code/Jetson-ORB-SLAM3-Hardware`.
+  Ours runs **Fedora**, but an **Ubuntu** PC works the same way. Every PC command in this runbook
+  (`git`, `ssh`, `scp`, `rsync`, `python3`, `pkill`, `ss`, `vncviewer`) is identical on both; only
+  package installation differs, and it's shown for both. PC tools, installed once:
+  ```bash
+  sudo dnf install -y git rsync openssh-clients tigervnc                 # Fedora
+  sudo apt install -y git rsync openssh-client tigervnc-viewer           # Ubuntu
+  ```
   🤖 **Jetson** means the Jetson, **over SSH**. No monitor is used. Programs with windows run on
   the Jetson's **virtual screen** (`DISPLAY=:1`), which you watch from the PC through VNC
   (**Part V**). Start Part V before any step that opens a window.
@@ -494,8 +501,10 @@ The viewer is drawn in software (a virtual screen has no GPU). That costs some C
 ```bash
 # 🤖 Jetson
 sudo apt install -y x11vnc openbox
-# 🖥️ PC (Fedora)
+# 🖥️ PC: Fedora
 sudo dnf install -y tigervnc
+# 🖥️ PC: Ubuntu
+sudo apt install -y tigervnc-viewer
 ```
 
 ### V2. Clean up anything old
@@ -528,10 +537,12 @@ rest isn't run on the PC.
 ```bash
 ssh -N -L 5910:127.0.0.1:5910 orb-slam3@<jetson-ip>
 ```
-**Terminal 2**, the viewer. The **double colon** means "port" to TigerVNC:
+**Terminal 2**, the viewer. The **double colon** means "port" to TigerVNC. It's the same command
+on Fedora and Ubuntu:
 ```bash
 vncviewer 127.0.0.1::5910
 ```
+On Ubuntu, if `vncviewer` isn't found, the same program is `xtigervncviewer 127.0.0.1::5910`.
 **✅ Check:** a window with a plain **black or grey screen** opens. That's the empty virtual
 display, so it's correct. If it warns that the connection is unencrypted, accept: the SSH tunnel
 already encrypts it.
@@ -566,8 +577,14 @@ only way to end it.
 - A room with texture: furniture, shelves, posters. Normal lighting, no direct sun into the
   camera.
 - Tape an **X** on the floor as the start mark, with an arrow for the heading.
-- Start a screen recording of the **VNC window on the PC**. Fedora's GNOME recorder works
-  (Ctrl+Shift+Alt+R). The recording stays on the PC and is the Milestone 1 evidence.
+- Start a screen recording of the **VNC window on the PC**. The recording stays on the PC and is
+  the Milestone 1 evidence.
+  - **Fedora** (GNOME): Ctrl+Shift+Alt+R starts and stops recording. Or press Print Screen and
+    choose the video option.
+  - **Ubuntu** 22.04 or newer (GNOME): the same. Ctrl+Shift+Alt+R, or Print Screen and the video
+    option. Recordings go to `~/Videos/Screencasts/`.
+  - **Either**, if you prefer an app: OBS Studio (`sudo dnf install -y obs-studio` /
+    `sudo apt install -y obs-studio`).
 - The camera cable must reach while you walk a small loop around the room. The Jetson stays on
   the desk.
 

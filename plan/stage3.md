@@ -34,7 +34,7 @@ also gives a third, independent motion source for the analysis.
 | **Motor controller**: does it already report encoder counts (e.g. RoboClaw, ODrive, a hoverboard board)? | If yes, read counts from it. If not, add encoders and a microcontroller |
 | **Encoders**: are there motors with built-in quadrature encoders, or do encoder discs need adding? | Hardware purchase and mounting |
 | **LiDAR position**: a mast above the camera, or at the front below it | The scan plane must see 360° (or a known sector) without hitting the rover, gimbal or camera |
-| **Viewing tool on the PC** | The PC runs Fedora, where ROS 2 isn't packaged. Use **Foxglove Studio** (works on Fedora) with `foxglove_bridge` on the Jetson, or `rviz2` on the Jetson over VNC |
+| **Viewing tool on the PC** | **Fedora PC** (ours): ROS 2 isn't packaged for Fedora, so use **Foxglove Studio** with `foxglove_bridge` on the Jetson, or `rviz2` on the Jetson over VNC (Stage 1, runbook Part V). **Ubuntu 22.04 PC:** install ROS 2 **Humble**, the same version as the Jetson, and run `rviz2` directly on the PC (`sudo apt install -y ros-humble-desktop` after adding the ROS 2 apt repository). Both machines need the same `ROS_DOMAIN_ID` on the same network. **Other Ubuntu versions:** use Foxglove, because mixing ROS 2 versions across machines isn't reliable |
 
 ---
 
