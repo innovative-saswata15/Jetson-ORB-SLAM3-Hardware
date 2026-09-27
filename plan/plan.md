@@ -158,10 +158,11 @@ the results.
 | Rover driver | ✅ built and working (E1 run). Optional from here on |
 | Live tracking speed | ≈15 fps effective (every other 30 fps frame skipped). Fine at slow speeds |
 | Virtual screen over VNC (runbook V) | ✅ working: the driver's windows and live camera image show in VNC; recording the VNC window works |
-| First live SLAM walk (runbook F), **Milestone 1** | ⏳ **next** |
+| First live SLAM walk (runbook F), **Milestone 1** | ❌ attempt 1: no loop (tracking lost near the end, and the walk ended standing still). Procedure corrected. ⏳ **attempt 2 next** |
 | Milestone 2 (rover, route A) | not started |
 
-**Next action:** runbook Part F: the X start mark, then the walk (F1, F3), with Part V running.
+**Next action:** runbook Part F, attempt 2, with the corrected walk (F3): slow turns, both hands,
+and continue 2–3 m past the X before stopping.
 
 ## Conventions used in all stages
 
@@ -170,8 +171,9 @@ the results.
   `keyframes.txt` and `run_info.txt`.
 - **3 runs per route and condition.** Same operator, lighting and start mark.
 - **Numbers come from `tools/summarize_run.py`,** so every comparison is computed the same way.
-- **Driving:** ≤ 0.5 m/s and turns ≤ 30°/s. Stop on the start mark and wait ~5 s before ending a
-  run.
+- **Driving / walking:** ≤ 0.5 m/s, and turns ≤ 30°/s, turned slowly. At the end, pass over the
+  start mark and **continue 2–3 m along the start of the route** before stopping. ORB-SLAM3
+  confirms a loop only after 3 consecutive recognitions, which needs the camera moving.
 
 ## Main risks (details in each stage document)
 

@@ -296,12 +296,18 @@ Stereo needs no initialisation motion: the map starts from the first frame.
 **Procedure:**
 1. Start facing a textured area: shelves, posters, furniture. Avoid a blank wall.
 2. Walk slowly (≤ 0.5 m/s) and turn gently. Keep the camera level and pointing forward.
-3. Walk a loop of ~10–20 m around the room, and **finish where you started, facing the same
-   way**.
-4. Hold still for ~5 s at the end, so loop closure can finish.
+3. Walk a loop of ~10–20 m around the room, come back over the start point facing the same way,
+   and **keep walking slowly along the first 2–3 m of the route**. ORB-SLAM3 confirms a loop only
+   after recognising the place in 3 consecutive new keyframes
+   ([src/LoopClosing.cc:444](../src/LoopClosing.cc#L444)), and keyframes are only made while the
+   camera moves, so stopping on the start point isn't enough.
+4. Hold the camera with both hands, and turn very slowly. Most tracking losses happen in turns.
 5. Press **Stop** in the viewer menu. **Ctrl-C doesn't stop this driver**: it prints "Finishing
    session" and carries on, because its main loop only checks `SLAM.isShutDown()`.
 6. `kill %1` to stop `tegrastats`.
+
+(Our first attempt stood still on the start point at the end, and also lost tracking during the
+final turn; no loop closed. See [progress_log.md](progress_log.md), section 10.)
 
 **Pass:**
 - `GPU ORB enabled` in the log;
@@ -363,7 +369,8 @@ Wi-Fi drop doesn't kill the run. Then choose one of two ways:
 | Viewing and stopping | The virtual screen over VNC (runbook Part V); click **Stop** in VNC | SSH only (`--no-viewer`); press `q` |
 | Evidence | A screen recording of the loop closing | Saved trajectories and a summary with numbers (loops, end-point error, tracking time), and optionally a recording |
 
-Either way, stop the rover before stopping a run, and wait ~5 s, so loop closure can finish.
+Either way, end each run by driving 2–3 m past the start mark along the start of the route (so
+loop closure can confirm), then stop the rover, and only then stop the run.
 
 ### 4.4 The rover driver
 
@@ -554,16 +561,28 @@ losses = sum(1 for a, b in zip([None] + states, states) if b == 4 and a != 4)   
 split = new_maps > merges            # a new map that never merged back leaves the run split
 
 kf = [list(map(float, l.split())) for l in open(run / "keyframes.txt") if l.strip()]
-path = sum(math.dist(p[1:4], q[1:4]) for p, q in zip(kf, kf[1:]))
-end_err = math.dist(kf[0][1:4], kf[-1][1:4]) if kf else float("nan")
+steps = [math.dist(p[1:4], q[1:4]) for p, q in zip(kf, kf[1:])]
+path = sum(steps)
+# end point vs the nearest keyframe from the first third of the route
+early, walked = [kf[0]], 0.0
+for k, d in zip(kf[1:], steps):
+    walked += d
+    if walked > path / 3:
+        break
+    early.append(k)
+end_err = min(math.dist(kf[-1][1:4], e[1:4]) for e in early)
 
 print(f"run={run.name} loops={loops} merges={merges} relocalized={relocs} "
       f"new_maps={new_maps} lost_events={losses} split={split} keyframes={len(kf)} "
       f"path_m={path:.2f} endpoint_m={end_err:.3f} "
       + (f"endpoint_pct={100*end_err/path:.2f}" if path > 0 and not split else "endpoint_pct=n/a"))
 ```
-- **End-point error** is meaningful only when the run **starts and ends at the same marked spot**
-  and the run isn't split. The start is the first keyframe, which is where the map begins.
+- **End-point error:** the run starts on the mark, goes round the loop, passes the mark again,
+  and ends 2–3 m further along the start of the route. The error is the distance from the **last
+  keyframe** to the **nearest keyframe in the first third of the route**. After a correct loop
+  closure the two passes lie on top of each other, so this is the drift left after the loop
+  correction. It's meaningful only if the run isn't split. (Tested on a synthetic 42 m loop:
+  ending 2 m past the start, 3 cm off the first pass, gives 3 cm.)
 - **Path length** is summed between keyframes, which slightly underestimates the distance
   driven. That's fine, because we compare runs with each other, not with an external standard.
 
@@ -576,14 +595,14 @@ against Stage 2's gimbal features (G3, G4), so they're recorded **only if Stage 
 - speed ≤ 0.5 m/s, and turns ≤ 30°/s, like the handheld walk;
 - the same operator, the same time of day and lighting, and the same start mark: tape an X on
   the floor, plus a line for the heading;
-- at the end, stop exactly on the start mark, wait ~5 s, then end the run (`q`, or **Stop** in
-  VNC).
+- at the end, drive **past the X and continue 2–3 m along the start of the route**, in the original direction, then stop and end the run (`q`, or **Stop** in VNC);
+- turn slowly: tracking losses mostly happen in turns.
 
 **Routes:**
 
 | Route | Description | What it shows | Needed |
 |---|---|---|---|
-| **A. Closed loop** | ~30–50 m around rooms or a building block. Ends at the start mark, **facing the same heading** | Normal loop closure and end-point error: "does the repo work on a rover" | **Now** (Milestone 2) |
+| **A. Closed loop** | ~30–50 m around rooms or a building block. Comes back over the start mark **facing the same heading**, and ends 2–3 m further along the start of the route | Normal loop closure and end-point error: "does the repo work on a rover" | **Now** (Milestone 2) |
 | **B. Out-and-back** | Drive ~20–30 m along a corridor, **turn around**, drive back to the start mark | The weak case: the return trip sees everything from the other side, so a loop closure is unlikely and drift stays | Only for Stage 2 (reference for G3) |
 | **C. Blank wall** | Drive normally for ~10 m (so the map has more than 10 keyframes), approach a featureless wall until tracking is lost, stop, then turn away and continue back to the start | Tracking loss: relocalisation vs new map | Only for Stage 2 (reference for G4) |
 

@@ -209,10 +209,59 @@ window worked.
 
 ---
 
+## 10. First live SLAM walk (runbook Part F), attempt 1: no loop closure
+
+Run with the original driver on the virtual screen (`DISPLAY=:1`), recorded through VNC.
+
+| Check | Result |
+|---|---|
+| `*Loop detected` | **0** |
+| `Stored map with ID` | **1**: tracking was lost once, and a new map started |
+| `GPU ORB enabled` | yes |
+| Dropped frames | 1665 in total, including 317 during the vocabulary load. During tracking, 1290 × "1 dropped" and 29 × "2 dropped" |
+| `tegrastats.log` | 240 lines (it ran from before the driver started until after it stopped) |
+| `PR: Loop detected with Reffine Sim3` | **0**. This is printed from the second consecutive recognition onwards, so the start area was never recognised twice in a row before tracking was lost |
+
+**What the log shows:**
+- **Processing was a steady ≈15 fps** (every other frame skipped), with very few double skips. So
+  the virtual screen's software drawing isn't slowing tracking.
+- **Tracking held for most of the walk.** The first map was created at log line 355, and was lost
+  near the very end: `Stored map with ID: 0` at line 1289 of ~1330, a new map at line 1292. The
+  loss happened ~3 s before that, during the return to the start point, and the run ended a
+  couple of seconds after the new map started.
+
+**Two causes:**
+1. **Tracking lost in the final approach or turn.** At ≈15 fps, quick turns and hand shake change
+   the view a lot between processed frames.
+2. **The walk ended standing still on the X.** That was our instruction, and it was wrong. ORB-SLAM3
+   confirms a loop only after recognising the place in **3 consecutive new keyframes**
+   (`mnLoopNumCoincidences >= 3`, [src/LoopClosing.cc:444](../src/LoopClosing.cc#L444)), and it
+   only creates keyframes while the camera moves. Unconfirmed recognitions are printed as
+   `PR: Loop detected with Reffine Sim3`.
+
+**Changes made:**
+- **Walk and drive procedure** (runbook F3 and I2, stage1.md Step 4 and 4.6, plan.md
+  conventions):
+  - hold the camera with both hands, and turn very slowly;
+  - come back over the X facing the arrow, and **continue 2–3 m along the start of the route**
+    before stopping.
+- **The runbook F4 check** also counts `PR: Loop detected` lines. There's a diagnosis guide for a
+  failed loop.
+- **`tools/summarize_run.py`'s end-point error** is now the distance from the last keyframe to
+  the **nearest keyframe in the first third of the route**, instead of first against last. So
+  runs that end 2–3 m past the start are still measured correctly. Tested on synthetic runs:
+  - a run ending on its start gives 5 cm, as before;
+  - a 42 m loop ending 2 m past the start, 3 cm off the first pass, gives 3 cm.
+
+**Next:** attempt 2 with the new procedure.
+
+---
+
 ## Current position
 
 - ✅ Parts A–E of the runbook.
 - ✅ Part V: the virtual screen works (camera feed visible in VNC, recording works).
-- ⏳ **Next: Part F.** Tape the X start mark, then do the walk (F1, F3) and the checks (F4). This
-  is the first live handheld SLAM run, and completes Milestone 1.
+- ❌ Part F attempt 1: no loop closure (tracking lost near the end, and the walk ended standing
+  still). See section 10.
+- ⏳ **Next: Part F attempt 2** with the corrected walk (runbook F3). This completes Milestone 1.
 - Then Milestone 2 on the rover: route A only, since Stage 2 isn't planned now.

@@ -587,16 +587,25 @@ recording.
 2. Walk **slowly** (≤ 0.5 m/s), turning gently, with the camera level and facing forward. Go
    round a loop of ~10–20 m. Tracking runs at about 15 fps (every other frame is skipped, see
    E1), so slow, smooth movement matters.
-3. Come back to the X, **facing the arrow again**. Hold still for ~5 s.
-4. Click **Stop** in the Map Viewer menu, in the VNC window. Ctrl-C does *not* stop this driver.
-5. Stop tegrastats with `kill %1` in the SSH session, and stop the screen recording on the PC.
+3. Hold the camera **with both hands**, steady and level. Turn **very slowly**: most tracking
+   losses happen in turns. Keep the camera on textured things, never close to a plain wall.
+4. Come back to the X facing the arrow, and **don't stop there: carry on slowly along the first
+   2–3 m of your original route**, the same way you started. `*Loop detected` should appear during
+   this part.
+   - **Why:** ORB-SLAM3 confirms a loop only after recognising the place in **3 consecutive new
+     keyframes** ([src/LoopClosing.cc:444](../src/LoopClosing.cc#L444)), and new keyframes are
+     only made while the camera moves. Standing still at the X gives it at most one chance.
+5. Stop walking, and click **Stop** in the Map Viewer menu, in the VNC window. Ctrl-C does *not*
+   stop this driver.
+6. Stop tegrastats with `kill %1` in the SSH session, and stop the screen recording on the PC.
 
 ### F4. Verify 🤖
 ```bash
 grep -cE "\*Loop detected" ~/evidence/m1/live_m1.log            # >= 1
 grep -cE "Stored map with ID" ~/evidence/m1/live_m1.log          # ideally 0
 grep -E "GPU ORB enabled" ~/evidence/m1/live_m1.log | head -1
-grep -c "dropped frs" ~/evidence/m1/live_m1.log                  # small
+grep -c "dropped frs" ~/evidence/m1/live_m1.log                  # ~1 per processed frame at ~15 fps
+grep -c "PR: Loop detected with Reffine Sim3" ~/evidence/m1/live_m1.log   # partial recognitions (need 3 in a row)
 cp ~/euroc_gpu.log ~/euroc_src.log ~/evidence/m1/ ; ls ~/evidence/m1
 ```
 **✅ Check (Milestone 1 pass):**
@@ -607,8 +616,20 @@ cp ~/euroc_gpu.log ~/euroc_src.log ~/evidence/m1/ ; ls ~/evidence/m1
 - `Stored map with ID` is 0, or rare;
 - few `dropped frs`.
 
-**If no loop closes:** walk slower, return along the same final few metres, check the room has
-texture, and try again.
+**If no loop closes:**
+- **`Stored map with ID` ≥ 1:** tracking was lost, and everything after is a new map. Find
+  where: `grep -n "New Map created\|Stored map" ~/evidence/m1/live_m1.log`. Watch the recording
+  at that moment (a turn? a plain wall?) and redo the walk slower there.
+- **No `Stored map`, but no loop:** you probably didn't walk far enough over the start area. A
+  non-zero `PR: Loop detected` count means it was recognising the place. Continue further along
+  the start of the route next time.
+- In any case, check the room has texture along the whole loop.
+
+**Our attempt 1** (2026-09-27) failed this way. Tracking held for most of the ~60 s walk and was
+lost near the end, during the return to the X: `Stored map with ID: 0` came at log line 1289 of
+~1330. The walk ended standing on the X (the old instruction), so no loop could be confirmed.
+Processing was a steady ≈15 fps (1290 × "1 dropped", 29 × "2 dropped"), so the virtual screen
+isn't slowing it.
 
 **📋 Send:** the F4 output. Milestone 1 is then complete. Keep the screen recording on the PC,
 e.g. in `~/Desktop/jetson-orbslam3-results/m1/`.
@@ -741,15 +762,17 @@ them **only if Stage 2 is started**; they're described in [stage1.md, 4.6](stage
 
 ### I1. Prepare route A (once)
 - **Start mark:** an X plus a heading arrow, taped on the floor.
-- **Route A:** a ~30–50 m closed loop around rooms or corridors, ending on the X **facing the
-  arrow**.
+- **Route A:** a ~30–50 m closed loop around rooms or corridors that comes back over the X
+  facing the arrow, and **continues 2–3 m along the start of the route**, where the run ends.
 - Write it down, with a sketch, so every run follows the same path.
 
 ### I2. Drive route A 3 times 🤖
 The rules for every run:
 - speed ≤ 0.5 m/s, turns ≤ 30°/s;
 - the same operator, time of day and lighting;
-- at the end, stop exactly on the X, wait ~5 s, then end the run.
+- at the end, drive **past the X and continue 2–3 m along the start of the route**, in the original direction, then stop and end the run. The end-point error is measured against the first pass over that stretch
+  (4.5 in stage1.md);
+- turn slowly: tracking losses mostly happen in turns.
 
 **With measurements** (rover driver):
 ```bash
