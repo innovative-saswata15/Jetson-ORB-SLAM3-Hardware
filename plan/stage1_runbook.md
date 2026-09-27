@@ -194,7 +194,7 @@ ls -l Vocabulary/ORBvoc.txt
 ```
 - `==> Using the prebuilt Orin binary ...`
 - `GPU ORB enabled (new CUDA kernels)`
-- `ATE RMSE:     X.XX cm`, with **X.XX between about 2 and 4**. For reference, the README's example run gave 2.14 cm, and the ORB-SLAM3 paper reports 3.6 cm for stereo-inertial on MH01; runs vary a little because ORB-SLAM3 is multi-threaded. Our first run gave 3.72 cm with 124 keyframes, in one map.
+- `ATE RMSE:     X.XX cm`, **a few centimetres** (roughly 2–5). For reference, the README's example run gave 2.14 cm, and the ORB-SLAM3 paper reports 3.6 cm for stereo-inertial on MH01. Repeat runs differ by up to about a centimetre, because ORB-SLAM3 is multi-threaded. Our runs: 3.72 cm (prebuilt) and 4.06 cm (source build), each in one map.
 - Also note the `median tracking time` line (seconds per frame). Our first run gave **0.075 s (~13 fps)**; compare it with C2.
 - `ORBvoc.txt` exists (~140 MB)
 
@@ -354,10 +354,12 @@ BUILD=1 JOBS=2 ./run_euroc.sh MH01 2>&1 | tee ~/euroc_src.log
 **✅ Check** 🤖:
 ```bash
 grep -E "Using the prebuilt|Building|GPU ORB enabled|ATE RMSE" ~/euroc_src.log
+cd ~/Jetson-ORB-SLAM3-Hardware      # the paths below are relative to the repo
 ls -l lib/libORB_SLAM3.so Examples/Stereo/stereo_realsense_D435i Examples/Stereo/stereo_realsense_D435_rover
+grep -n "warning" ~/euroc_src.log | grep -i rover || echo "no warnings from the rover driver"
 ```
 - `==> Building -- first time only ...` is present, and `Using the prebuilt` is **absent**.
-- `GPU ORB enabled`, and an ATE close to C1 (≈ 2 cm).
+- `GPU ORB enabled`, and an ATE **within about 1 cm of the C1 result**. This shows our source build behaves like the authors' prebuilt binary. Ours: 4.06 cm, against 3.72 cm.
 - All three files exist.
 
 **If the two `stereo_realsense_*` binaries are missing,** CMake didn't find librealsense. Check

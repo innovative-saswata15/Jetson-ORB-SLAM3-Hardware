@@ -299,6 +299,12 @@ int main(int argc, char **argv)
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::STEREO, use_viewer, 0, run_name);
     const float imageScale = SLAM.GetImageScale();
 
+    // Frames that arrived while the vocabulary was loading are not tracking drops; start counting now.
+    {
+        std::lock_guard<std::mutex> lk(frame_mutex);
+        frames_since_read = frame_ready ? 1 : 0;
+    }
+
     std::thread kb(keyboard_thread);
     cout << "[ROVER] running. Press q (or Ctrl-C) to stop and save. Output: " << out << endl;
 

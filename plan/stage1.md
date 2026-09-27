@@ -133,7 +133,7 @@ stereo-inertial SLAM on MH01, which takes a few minutes. Then it prints the ATE.
 grep -E "Using the prebuilt|GPU ORB enabled|ATE RMSE" ~/euroc_gpu.log
 # ==> Using the prebuilt Orin binary ...
 # GPU ORB enabled (new CUDA kernels)
-#     ATE RMSE:     ~2–4 cm (README example 2.14 cm; the ORB-SLAM3 paper reports 3.6 cm for MH01)
+#     ATE RMSE:     a few cm (README example 2.14 cm; the ORB-SLAM3 paper reports 3.6 cm for MH01)
 ```
 - `[CNN] No TensorRT engine; loop closure uses DBoW2 only` is expected. The optional CNN model
   isn't installed.
@@ -212,7 +212,7 @@ ls -l Examples/Stereo/stereo_realsense_D435i       # must exist
 ```
 
 **Pass:**
-- the ATE matches Step 1 (≈2 cm);
+- the ATE is within about 1 cm of Step 1 (ours: 4.06 cm from source, against 3.72 cm prebuilt);
 - `stereo_realsense_D435i` exists.
 
 If it's missing, CMake didn't find librealsense. Check that `/usr/local/lib/cmake/realsense2/`
