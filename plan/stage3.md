@@ -3,6 +3,8 @@
 Part of the [overall plan](plan.md). **Not started, and not needed for the core demonstration.**
 Pick it up after [Stage 1](stage1.md). [Stage 2](stage2.md) is optional before it.
 
+**Status: not planned yet.** The current scope is Stage 1 only (see [plan.md](plan.md)).
+
 **Goal:** add the two sensors together, **wheel encoders** and the **RPLidar A1** 2D LiDAR. Then
 measure what fusing them with ORB-SLAM3 gains over each on its own.
 

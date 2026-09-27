@@ -7,19 +7,25 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
 - **Where commands run:** 🖥️ **PC** means your Fedora PC, in `~/Desktop/code/Jetson-ORB-SLAM3-Hardware`.
   🤖 **Jetson** means the Jetson, over SSH or at its own desktop.
 - **User and paths on the Jetson:** user `orb-slam3`; the repo at `~/Jetson-ORB-SLAM3-Hardware`.
-- Replace `<jetson-ip>` with the Jetson's address (`hostname -I` on the Jetson).
+- Replace `<jetson-ip>` with the Jetson's address (`hostname -I` on the Jetson). Ours is
+  `192.168.1.5`.
+- **What actually happened at each step**, with the real outputs:
+  [progress_log.md](progress_log.md).
+- **Scope right now: Stage 1 only.** Stage 2 (gimbal) and Stage 3 (LiDAR) aren't planned yet, so
+  Milestone 2 needs only route A (Part I).
 
-| Part | Content | Time |
-|---|---|---|
-| A | Jetson housekeeping | 20 min |
-| B | Get our new files onto the Jetson with git | 10 min |
-| C | EuRoC check with the prebuilt binary (downloads MH01) | 30 min + download |
-| D | Build from source with RealSense support | 2–3 h (mostly waiting) |
-| E | Our D435's calibration file | 15 min |
-| F | Live handheld run (original driver): **Milestone 1** | 30 min |
-| G | Rover driver bench tests | 30 min |
-| H | Mount, power, first rover drive | ½–1 day |
-| I | Baseline runs A/B/C × 3: **Milestone 2** | ½–1 day |
+| Part | Content | Time | Status |
+|---|---|---|---|
+| A | Jetson housekeeping | 20 min | ✅ done |
+| B | Get our new files onto the Jetson with git | 10 min | ✅ done |
+| C | EuRoC check with the prebuilt binary (downloads MH01) | 30 min + download | ✅ C1 done: ATE 3.72 cm. C2 skipped (optional) |
+| D | Build from source with RealSense support | 2–3 h (mostly waiting) | ✅ done: ATE 4.06 cm. librealsense and Pangolin were already installed |
+| E | Our D435's calibration file | 15 min | ✅ done: commit `d1821b9` |
+| V | Virtual screen over VNC (only if there's no monitor) | 15 min | ⏳ **next** (set up and tested; not yet used with the driver) |
+| F | Live handheld run (original driver): **Milestone 1** | 30 min | ⏳ |
+| G | Rover driver bench tests: only if Milestone 2 should produce saved trajectories and numbers | 30 min | optional |
+| H | Mount, power, first rover drive | ½–1 day | |
+| I | Route A closed-loop runs: **Milestone 2** | ½ day | |
 
 ---
 
@@ -258,6 +264,9 @@ command -v rs-enumerate-devices && rs-enumerate-devices --version 2>/dev/null
   USB 3.x (D2d), **skip to D2d**. It's usable.
 - Otherwise, build it (D2b and D2c).
 
+**Ours:** already installed, **v2.55.1**, with its udev rules present
+(`99-realsense-libusb.rules`). D2b and D2c were skipped.
+
 **D2b. Choose the version** (skip if it's already on a recent release tag):
 ```bash
 cd ~/librealsense
@@ -302,6 +311,11 @@ lsusb -t | grep -B1 -A1 -i "5000M"
 `2.1`, or no `5000M`, means the USB 3 link failed. Flip the USB-C plug, try another port, use a
 short USB 3 cable, and repeat. **Don't continue on USB 2.**
 
+**Ours:** `Intel RealSense D435`, serial `827312071682`, firmware 5.17.3.10, USB 3.2 and `5000M`.
+Connected with a **USB 3 C-to-C cable**; the dev kit's USB-C port supports host mode (NVIDIA's
+hardware guide). A USB-C cable must be USB 3 data-rated: many C-to-C cables are USB 2 or
+charge-only.
+
 **D2e. Live image and firmware** (at the Jetson's desktop):
 ```bash
 realsense-viewer
@@ -325,6 +339,8 @@ cameras with the rover driver over SSH, and checks the same thing.
 ```bash
 ls /usr/local/lib/cmake/Pangolin/PangolinConfig.cmake 2>/dev/null && echo "ALREADY INSTALLED"
 ```
+**Ours:** already installed. The repo's CMake found it in D4 without any build.
+
 If it's not installed:
 ```bash
 cd ~ && git clone --branch v0.6 --depth 1 https://github.com/stevenlovegrove/Pangolin.git
@@ -405,6 +421,10 @@ You'll get something like:
 
 This was also the rover driver's first test: it started, and `q` worked.
 
+**Ours:** fx = fy = 385.4061, cx = 318.2860, cy = 238.9506, baseline 0.0499 m, USB 3.2, no
+warning. The run also showed `1 dropped frs` after almost every frame: tracking takes longer than
+the camera's 33 ms, so it runs at **≈15 fps effective**. That's fine at slow speeds.
+
 For a more precise baseline (the driver rounds to 4 decimals), read the translation's x value in
 `rs-enumerate-devices -c | grep -A6 'Extrinsic from "Infrared 2"'`.
 
@@ -451,36 +471,123 @@ git log --oneline -1
 
 ---
 
+## Part V: virtual screen over VNC (when there's no monitor)
+
+The original driver always opens its viewer, and its **Stop** button is the only way to end it,
+so it needs a display. With a monitor on the Jetson (the dev kit has only **DisplayPort**: use a
+DP monitor or a DP-to-HDMI cable), skip this part. Without one, we give the Jetson a **virtual
+screen** and view it from the PC:
+- **Xvfb** creates virtual display `:1`. It was already installed in A4; it's the same tool
+  `run_euroc.sh` uses over SSH.
+- **openbox** is a tiny window manager, so windows can be moved.
+- **x11vnc** shares display `:1`, on port **5910**, reachable **only** from the Jetson itself.
+- An **SSH tunnel** carries it to the PC, and **TigerVNC** shows it.
+
+The viewer is drawn in software (a virtual screen has no GPU). That costs some CPU, so watch the
+`dropped frs` count.
+
+### V1. Install (once)
+```bash
+# 🤖 Jetson
+sudo apt install -y x11vnc openbox
+# 🖥️ PC (Fedora)
+sudo dnf install -y tigervnc
+```
+
+### V2. Clean up anything old
+```bash
+# 🤖 Jetson
+pkill x11vnc; pkill openbox; pkill Xvfb
+sleep 1; pgrep -a "Xvfb|x11vnc|openbox" || echo "all stopped"
+# 🖥️ PC: close any VNC viewer windows first
+pkill -f "ssh .*-L 59"
+```
+
+### V3. Start the virtual screen 🤖
+In an SSH session, inside tmux, so it survives an SSH drop:
+```bash
+tmux new -s vscreen
+Xvfb :1 -screen 0 1920x1080x24 &
+sleep 2
+DISPLAY=:1 openbox &
+x11vnc -display :1 -localhost -rfbport 5910 -nopw -forever -bg -noxdamage -o ~/x11vnc.log
+ss -ltn | grep 5910
+```
+**✅ Check:** the last line shows `LISTEN ... 127.0.0.1:5910`. The Openbox message about a missing
+menu file is harmless. Detach from tmux with **Ctrl-b, then d**.
+
+### V4. Connect from the PC 🖥️
+Use **two separate terminal windows**. Don't paste both commands into one: once `ssh` starts, the
+rest isn't run on the PC.
+
+**Terminal 1**, the tunnel. After the password it shows nothing; leave it open:
+```bash
+ssh -N -L 5910:127.0.0.1:5910 orb-slam3@<jetson-ip>
+```
+**Terminal 2**, the viewer. The **double colon** means "port" to TigerVNC:
+```bash
+vncviewer 127.0.0.1::5910
+```
+**✅ Check:** a window with a plain **black or grey screen** opens. That's the empty virtual
+display, so it's correct. If it warns that the connection is unencrypted, accept: the SSH tunnel
+already encrypts it.
+
+### V5. Run programs on the virtual screen
+Prefix the command with `DISPLAY=:1` (Part F shows it). Windows appear in the VNC viewer about
+10 s later, while the vocabulary loads; drag them apart. If a window looks frozen or black, press
+**Left Alt three times** in the VNC window to repaint.
+
+### V6. Shut down afterwards
+```bash
+pkill x11vnc; pkill openbox; pkill Xvfb      # 🤖 Jetson
+```
+On the PC, close the viewer and press Ctrl-C in the tunnel terminal. **Next time: V2–V4 again.**
+
+**Why these choices** (problems we actually hit):
+- **Port 5910, not 5900:** something else on the Jetson already listens on 5900 over IPv6.
+- **The tunnel targets `127.0.0.1`, not `localhost`:** `localhost` may resolve to that other IPv6
+  listener.
+- **`pkill -f "ssh .*-L 59"` first:** an old tunnel on the PC held port 5901.
+
+---
+
 ## Part F: live handheld run with the original driver (**Milestone 1**, Step 4)
 
-This must run **at the Jetson's desktop**, with a monitor, keyboard and mouse. The original driver
-always opens its viewer, and its **Stop** button is the only way to end it.
+This needs a display: a **monitor** on the Jetson, or the **virtual screen** from Part V. The
+original driver always opens its viewer, and its **Stop** button is the only way to end it.
 
 ### F1. Prepare
 - The D435 is plugged directly into the Jetson; D2d passes (USB 3.x).
 - A room with texture: furniture, shelves, posters. Normal lighting, no direct sun into the
   camera.
 - Tape an **X** on the floor as the start mark, with an arrow for the heading.
-- Start a screen recording: GNOME's built-in recorder (Ctrl+Shift+Alt+R), or any recorder.
+- Start a screen recording. With a monitor, use the Jetson's GNOME recorder (Ctrl+Shift+Alt+R).
+  With the virtual screen, record the **VNC window on the PC**; Fedora's GNOME recorder works
+  (Ctrl+Shift+Alt+R).
+- The camera cable must reach while you walk a small loop around the room. The Jetson stays on
+  the desk.
 
-### F2. Run 🤖 (terminal on the Jetson desktop)
+### F2. Run 🤖
+**With the virtual screen** (Part V running, VNC viewer open on the PC), over SSH:
 ```bash
 mkdir -p ~/evidence/m1 && cd ~/Jetson-ORB-SLAM3-Hardware
 tegrastats --interval 1000 > ~/evidence/m1/tegrastats.log &
-./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
+DISPLAY=:1 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
     Examples/Stereo/RealSense_D435.yaml 2>&1 | tee ~/evidence/m1/live_m1.log
 ```
+**With a monitor:** the same, run in a terminal on the Jetson's desktop, without `DISPLAY=:1`.
 Two windows open: **"ORB-SLAM3: Current Frame"** (IR image with green features) and
 **"ORB-SLAM3: Map Viewer"** (3D).
 
 ### F3. Walk
 1. Stand on the X, facing the arrow. Tracking starts immediately; stereo needs no special motion.
 2. Walk **slowly** (≤ 0.5 m/s), turning gently, with the camera level and facing forward. Go
-   round a loop of ~10–20 m.
+   round a loop of ~10–20 m. Tracking runs at about 15 fps (every other frame is skipped, see
+   E1), so slow, smooth movement matters.
 3. Come back to the X, **facing the arrow again**. Hold still for ~5 s.
-4. Click **Stop** in the Map Viewer menu, then close the windows. Ctrl-C does *not* stop this
-   driver.
-5. Stop tegrastats and the screen recording: `kill %1`.
+4. Click **Stop** in the Map Viewer menu (in the VNC window, when using the virtual screen), then
+   close the windows. Ctrl-C does *not* stop this driver.
+5. Stop tegrastats with `kill %1`, and stop the screen recording.
 
 ### F4. Verify 🤖
 ```bash
@@ -508,13 +615,17 @@ texture, and try again.
 
 ## Part G: rover driver bench tests (before any mounting)
 
+**Optional.** You only need Part G if Milestone 2 should produce **saved trajectories and numbers**
+(loop closures, end-point error, tracking time). For a visual-only Milestone 2 (the original
+driver over VNC plus a screen recording, see H3), skip it.
+
 These tests check that the rover driver is trustworthy: it exits cleanly and saves correct files
 every time.
 
-### G1. Handheld with the viewer 🤖 (Jetson desktop)
+### G1. Handheld with the viewer 🤖 (monitor, or the virtual screen from Part V)
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware
-tools/rover_run.sh bench1
+DISPLAY=:1 tools/rover_run.sh bench1        # with a monitor: omit DISPLAY=:1, run on the desktop
 ```
 Walk the same room loop as in F3, return to the X, and hold still ~5 s. Then press **q** in the
 terminal, not in the viewer.
@@ -535,8 +646,9 @@ terminal, not in the viewer.
   - `keyframes.txt` has one line per keyframe (`timestamp x y z qx qy qz qw`);
   - `tracked` lines ≈ run length in seconds;
   - the summary shows `loops>=1`, `split=False`, and a small `endpoint_pct`;
-  - **`mean_track_ms` below ~33.** That's real time at 30 fps. If it's higher, note it; Stage 1,
-    section 5 has the options.
+  - note `mean_track_ms`. **Below ~33 would be full real time at 30 fps.** We expect roughly
+    50–75 ms, because tracking skips every other frame (≈15 fps, see E1). That's acceptable at
+    slow speeds; Stage 1, section 5 has options if tracking suffers.
 
 ### G2. Headless over SSH 🤖
 From an SSH session, with no monitor needed:
@@ -570,8 +682,8 @@ Move the camera a little, then press **Ctrl-C** (not q).
   point), on rubber dampers.
 - [ ] Facing forward and level. The two IR lenses are horizontal.
 - [ ] USB cable ≤ 1 m, strain-relieved at both ends, tied to the chassis.
-- [ ] **Field of view check** at the Jetson desktop, rover on the floor: `realsense-viewer`,
-  Infrared 1 and 2. **No part of the rover** (wheels, antenna, cables) is visible in either image.
+- [ ] **Field of view check**, rover on the floor: `realsense-viewer` on a display (a monitor, or
+  `DISPLAY=:1 realsense-viewer` with Part V), Infrared 1 and 2. **No part of the rover** (wheels, antenna, cables) is visible in either image.
 - [ ] `lsusb -t` still shows `5000M` for the camera with everything mounted.
 
 ### H2. Power
@@ -586,6 +698,18 @@ Move the camera a little, then press **Ctrl-C** (not q).
 - [ ] The Jetson joins Wi-Fi and SSH works from the PC while the rover is away from the desk.
 - [ ] Every run starts inside `tmux`, so a Wi-Fi drop doesn't kill it.
 
+Choose one of two ways to run on the rover:
+
+| | **Visual only** | **With measurements** |
+|---|---|---|
+| Program | The original `stereo_realsense_D435i` | `tools/rover_run.sh` (rover driver) |
+| How to view and stop | Part V's virtual screen over Wi-Fi; click **Stop** in VNC | SSH only (`--no-viewer`); press **q** |
+| Evidence | A screen recording of the loop closing | The recording (optional), plus saved trajectories and a summary line with numbers |
+| Needs Part G | no | yes |
+
+With the visual-only way, run the H4 and I2 drives with the F2 command instead of
+`tools/rover_run.sh`, and record the VNC window.
+
 ### H4. First drive: a slow straight line 🤖
 ```bash
 tmux new -s rover
@@ -597,7 +721,7 @@ Drive ~10 m straight at walking pace, stop, wait ~5 s, and press **q**.
 **✅ Check:**
 - summary `split=False`, `lost_events=0`;
 - `path_m` ≈ the distance driven (±10 %);
-- `mean_track_ms` < 33;
+- note `mean_track_ms` (≈50–75 ms expected, see G1);
 - `grep -c "dropped frs" $(ls -d ~/runs/*_smoke1_line | tail -1)/console.log` is small.
 
 If tracking is lost while driving, go slower first. Then check for vibration: if the image is
@@ -607,44 +731,51 @@ blurry in `realsense-viewer` while driving, improve the dampers.
 
 ---
 
-## Part I: baseline runs (**Milestone 2**, 4.6)
+## Part I: route A runs (**Milestone 2**, 4.6)
 
-### I1. Prepare the routes (once)
-- **Start mark:** an X plus a heading arrow, taped on the floor for each route.
-- **Route A, closed loop:** ~30–50 m around rooms or corridors, ending on the X **facing the
+Only **route A** (closed loop) is needed now: it shows the repo working on the rover. Routes B
+(out-and-back) and C (blank wall) exist to be compared against Stage 2's gimbal features. Record
+them **only if Stage 2 is started**; they're described in [stage1.md, 4.6](stage1.md#46-baseline-drive-tests).
+
+### I1. Prepare route A (once)
+- **Start mark:** an X plus a heading arrow, taped on the floor.
+- **Route A:** a ~30–50 m closed loop around rooms or corridors, ending on the X **facing the
   arrow**.
-- **Route B, out and back:** ~20–30 m along a corridor, turn around, and come back to the X.
-- **Route C, blank wall:** ~10 m of normal driving (so the map has more than 10 keyframes), then
-  approach a plain wall until tracking is lost. Stop, turn away, and drive back to the X.
-- Write each route down, with a sketch, so every run follows the same path.
+- Write it down, with a sketch, so every run follows the same path.
 
-### I2. Run each route 3 times 🤖
+### I2. Drive route A 3 times 🤖
 The rules for every run:
 - speed ≤ 0.5 m/s, turns ≤ 30°/s;
 - the same operator, time of day and lighting;
-- at the end, stop exactly on the X, wait ~5 s, then press **q**.
+- at the end, stop exactly on the X, wait ~5 s, then end the run.
+
+**With measurements** (rover driver):
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware
-tools/rover_run.sh A1_base --no-viewer      # then A2_base, A3_base
-tools/rover_run.sh B1_base --no-viewer      # then B2_base, B3_base
-tools/rover_run.sh C1_base --no-viewer      # then C2_base, C3_base
+tools/rover_run.sh A1_base --no-viewer      # then A2_base, A3_base; press q at the end
 ```
-**✅ Check after each run:** the summary line was printed, and the folder has all 8 files. If a
-run was disturbed (someone walked in front, you drove off the route), **repeat it** and delete the
-bad folder.
+**Visual only** (original driver over VNC, see H3): the F2 command with
+`tee ~/evidence/m2/live_A1.log` (and A2, A3), recording the VNC window. End each run with
+**Stop**.
 
-### I3. Collect the baseline 🤖
+**✅ Check after each run:** with measurements, the summary line was printed and the folder has
+all 8 files; visual only, the log and recording exist. If a run was disturbed (someone walked in
+front, you drove off the route), **repeat it** and delete the bad run.
+
+### I3. Collect the results 🤖
+**With measurements:**
 ```bash
-python3 tools/summarize_run.py ~/runs/*_base | tee ~/runs/baseline.txt
+python3 tools/summarize_run.py ~/runs/*_A?_base | tee ~/runs/route_A.txt
 ```
-**✅ Check (Milestone 2 pass):**
-- **all three A runs:** `loops ≥ 1`, `split=False`, `endpoint_pct` of a few % or less;
-- three B and three C runs recorded; their numbers are whatever they are, since they're the
-  reference for Stage 2;
-- note the **median of `median_tracked`** across the A runs. It sets Stage 2's weak-tracking
-  threshold (about a third of it).
+**Visual only:**
+```bash
+grep -c "\*Loop detected" ~/evidence/m2/live_A*.log; grep -c "Stored map with ID" ~/evidence/m2/live_A*.log
+```
+**✅ Check (Milestone 2 pass): all three A runs** close the loop (`loops ≥ 1` / `*Loop detected`),
+and don't end split (`split=False` / no unmerged `Stored map` lines). With measurements, also an
+`endpoint_pct` of a few % or less.
 
-**📋 Send:** `~/runs/baseline.txt`. **Stage 1 is then complete.**
+**📋 Send:** `~/runs/route_A.txt`, or the visual-only `grep` output. **Stage 1 is then complete.**
 
 ### I4. Back up the evidence 🖥️
 ```bash
@@ -667,4 +798,8 @@ rsync -a orb-slam3@<jetson-ip>:runs orb-slam3@<jetson-ip>:evidence ~/Desktop/jet
 | `WARNING: no camera frames for 2 s` | USB dropout. Check the cable strain relief; watch `sudo dmesg -w` |
 | Many `dropped frs`, `mean_track_ms` > 33 | Drive slower. Compare with a `CPU_ORB=1` run. Stage 1, section 5 |
 | Terminal doesn't echo after a crash | Type `reset` and press Enter |
+| `bind ... Address already in use` when starting the tunnel | An old tunnel holds the port: `pkill -f "ssh .*-L 59"` on the PC (V2) |
+| VNC viewer doesn't open, or opens but stays empty | The tunnel and viewer must be in **separate** terminals (V4). Check `ss -ltn \| grep 5910` on the Jetson (V3). Use `vncviewer 127.0.0.1::5910` (double colon) |
+| VNC shows a black screen after the driver starts | Press Left Alt three times in the VNC window; check the driver was started with `DISPLAY=:1` |
+| `x11vnc`: `listen6: bind: Address already in use` | Something else holds 5900 on IPv6; that's why Part V uses port 5910 |
 | Anything else | Stage 1, section 5; or send the last 30 lines of the relevant log |

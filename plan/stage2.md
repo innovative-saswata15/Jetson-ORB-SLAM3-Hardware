@@ -3,6 +3,8 @@
 Part of the [overall plan](plan.md). It builds on [Stage 1](stage1.md): the rover driver, the run
 summary script, and the baseline numbers.
 
+**Status: not planned yet.** The current scope is Stage 1 only (see [plan.md](plan.md)). If Stage 2 starts, first record Stage 1's routes B and C (3 runs each, with the rover driver), because G3 and G4 are measured against them. Stage 1 now records only route A.
+
 **Goal:** use the STorM32 gimbal to make ORB-SLAM3 more robust on the rover, **without changing
 the library**. It's used in three ways:
 

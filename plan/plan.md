@@ -4,9 +4,12 @@ This is the overview. Each stage has its own detailed document:
 
 | Stage | Document | Status |
 |---|---|---|
-| **1. The repo on our hardware**: D435 + Jetson, handheld then on the rover | [stage1.md](stage1.md), and the step-by-step [stage1_runbook.md](stage1_runbook.md) | **Current** |
-| **2. Gimbal add-on**: stability, coverage sweeps, recovery sweeps | [stage2.md](stage2.md) | After Stage 1 |
-| **3. Wheel encoders + RPLidar A1**, fusion analysis | [stage3.md](stage3.md) | Future |
+| **1. The repo on our hardware**: D435 + Jetson, handheld then on the rover | [stage1.md](stage1.md), and the step-by-step [stage1_runbook.md](stage1_runbook.md) | **Current**, the only stage planned now |
+| **2. Gimbal add-on**: stability, coverage sweeps, recovery sweeps | [stage2.md](stage2.md) | Not planned yet |
+| **3. Wheel encoders + RPLidar A1**, fusion analysis | [stage3.md](stage3.md) | Not planned yet |
+
+**What has actually been done**, with real outputs and everything we learned along the way:
+[progress_log.md](progress_log.md).
 
 ---
 
@@ -51,7 +54,15 @@ This is the overview. Each stage has its own detailed document:
 | Feeding gimbal motion into ORB-SLAM3's tracker | Rejected | It would modify the library |
 | Wheel encoders + RPLidar A1 | Stage 3 (future), added together, loose fusion | 2D LiDAR SLAM needs odometry; best analysed as one experiment |
 | Rover autonomy | Out of scope | The rover is driven by hand |
-| Plan layout | One overview plus one detailed document per stage | Each detail lives in exactly one place |
+| Plan layout | One overview plus one detailed document per stage, a runbook, and a progress log | Each detail lives in exactly one place |
+| Current scope | **Stage 1 only** | Stages 2 and 3 later, if at all |
+| Milestone 2 routes | **Route A only** (3 runs). B and C only if Stage 2 starts | B and C exist as references for Stage 2's gimbal features |
+| Rover driver | Optional: only for Milestone 2 **with measurements** | The SLAM is identical. The original driver over VNC is enough for a visual demo |
+| No monitor | A virtual screen over VNC (Xvfb + openbox + x11vnc on port 5910, SSH tunnel, TigerVNC) | The original driver needs a display for its viewer and Stop button |
+| JetPack install | 6.2.3 flashed to NVMe with SDK Manager (native Ubuntu); components through `apt install nvidia-jetpack` | SDK Manager's component step failed over USB; apt does the same job |
+| Camera firmware | Keep 5.17.3.10 (librealsense 2.55.1 recommends 5.16.0.1) | Newer firmware works; "updating" would be a downgrade |
+| Git workflow | Commit on the PC, push, `git pull --ff-only` on the Jetson; Jetson-made files go to the PC by `scp` | Pulling needs no login, pushing would |
+| `apt upgrade` | Not run during this work | Keeps the JetPack base stable |
 
 ---
 
@@ -94,21 +105,19 @@ the results.
 ## Stage summaries
 
 ### Stage 1: the repo on our hardware ([details](stage1.md))
-- **Milestone 1, handheld (1–2 days):**
-  1. reproduce the repo's EuRoC result (ATE ≈ 2 cm);
-  2. build from source with librealsense and Pangolin;
-  3. write our D435's calibration file;
-  4. walk a loop with the original live driver, and check that it closes.
-- **Milestone 2, rover (3–5 days):**
+- **Milestone 1, handheld:**
+  1. ✅ reproduce the repo's EuRoC result: **3.72 cm** ATE with the prebuilt binary (paper:
+     3.6 cm);
+  2. ✅ build from source with RealSense support: **4.06 cm** ATE;
+  3. ✅ write our D435's calibration file;
+  4. ⏳ walk a loop with the original live driver, and check that it closes. There's no monitor,
+     so this uses the virtual screen over VNC.
+- **Milestone 2, rover:**
   - rigid mount and power;
-  - a new **rover driver**: a copy of the original that exits cleanly, saves trajectories and
-    logs tracking events;
-  - `tools/summarize_run.py`;
-  - **baseline numbers** on three routes, 3 runs each:
-    - A: closed loop;
-    - B: out-and-back;
-    - C: blank wall.
-- **Done when:** route A closes reliably on the rover, and all baseline numbers are recorded.
+  - **route A** (closed loop), 3 runs;
+  - either **visual only** (the original driver over VNC, plus a screen recording), or **with
+    measurements** (the rover driver: saved trajectories, and `tools/summarize_run.py` numbers).
+- **Done when:** route A closes its loop on the rover in all 3 runs.
 
 ### Stage 2: the gimbal add-on ([details](stage2.md))
 - **G1 stability:** assemble, balance and tune the STorM32, with yaw in follow mode. Re-run routes
@@ -140,20 +149,24 @@ the results.
 
 | Item | Status |
 |---|---|
-| JetPack 6.2.3 (L4T 36.5.2) on NVMe, `nvidia-jetpack` installed | ✅ done |
-| CUDA 12.6 / TensorRT 10.3 / OpenCV 4.8.0 / numpy | ✅ checked |
-| The repo's prebuilt Orin binary runs on this JetPack | ✅ checked |
-| `xvfb`, `tmux` | ❌ install ([stage1.md, section 2](stage1.md#2-housekeeping-on-the-jetson-15-min)) |
-| EuRoC MH01 on the Jetson | ⏳ downloading through `run_euroc.sh` (the earlier HTTP 429 block has lifted) |
-| Two copies of the repo on the Jetson | ⚠️ keep the one with remote `innovative-saswata15/Jetson-ORB-SLAM3-Hardware` |
-| Rover driver, `tools/summarize_run.py`, `tools/rover_run.sh`, CMake target | ✅ written on the PC; syntax-checked and summary logic tested. Not yet built on the Jetson. Moved to the Jetson with git push and pull ([runbook, Part B](stage1_runbook.md#part-b-get-our-new-files-onto-the-jetson-with-git)) |
+| JetPack 6.2.3 (L4T 36.5.2) on NVMe, `nvidia-jetpack` installed | ✅ CUDA 12.6.68, TensorRT 10.3.0.30, OpenCV 4.8.0 |
+| Repo on the Jetson, git workflow | ✅ `~/Jetson-ORB-SLAM3-Hardware`; PC and Jetson both on `d1821b9` |
+| EuRoC MH01 with the prebuilt binary (runbook C1) | ✅ ATE **3.72 cm**, 3682 frames in one map, tracking ~75 ms per frame |
+| Source build with RealSense support (runbook D) | ✅ ATE **4.06 cm**; librealsense v2.55.1 and Pangolin were already installed |
+| D435 on USB 3 | ✅ serial 827312071682, firmware 5.17.3.10, USB 3.2 via a USB 3 C-to-C cable |
+| Calibration file (runbook E) | ✅ fx = fy = 385.4061, cx = 318.2860, cy = 238.9506, b = 0.0499 m, committed `d1821b9` |
+| Rover driver | ✅ built and working (E1 run). Optional from here on |
+| Live tracking speed | ≈15 fps effective (every other 30 fps frame skipped). Fine at slow speeds |
+| Virtual screen over VNC (runbook V) | ⏳ procedure written and started correctly; not yet used with the driver |
+| First live SLAM walk (runbook F), **Milestone 1** | ⏳ **next** |
+| Milestone 2 (rover, route A) | not started |
 
-**Next action:** follow [stage1_runbook.md](stage1_runbook.md) from Part A.
+**Next action:** runbook Part V (virtual screen), then Part F.
 
 ## Conventions used in all stages
 
-- **Run folders:** `~/runs/<YYYYmmdd-HHMMSS>_<route><n>_<condition>`, e.g.
-  `20261003-101500_B2_base`, `..._B2_g3`. Each holds `console.log`, `events.csv`, `frames.txt`,
+- **Run folders** (with the rover driver): `~/runs/<YYYYmmdd-HHMMSS>_<route><n>_<condition>`,
+  e.g. `20261003-101500_A2_base`. Each holds `console.log`, `events.csv`, `frames.txt`,
   `keyframes.txt` and `run_info.txt`.
 - **3 runs per route and condition.** Same operator, lighting and start mark.
 - **Numbers come from `tools/summarize_run.py`,** so every comparison is computed the same way.
@@ -164,9 +177,11 @@ the results.
 
 | Risk | Stage | Mitigation |
 |---|---|---|
-| EuRoC download rate-limited (HTTP 429) | 1 | Wait and retry once; PC download as a fallback |
-| Pangolin v0.6 or librealsense build issues on JetPack 6.2.3 | 1 | `-j2`; known small fixes |
-| D435 on USB 2 | 1 | Direct connection, short USB 3 cable |
+| EuRoC download rate-limited (HTTP 429) | 1 | Happened once. Wait and retry once; PC download as a fallback. **Resolved** |
+| Pangolin or librealsense build issues on JetPack 6.2.3 | 1 | **Resolved:** both were already installed; the repo built cleanly |
+| D435 on USB 2 | 1 | **Resolved:** USB 3.2 with a USB 3 C-to-C cable. Re-check `5000M` after mounting on the rover |
+| Tracking slower than 30 fps (≈15 fps effective, ~75 ms per frame on EuRoC) | 1 | Move and drive slowly. If tracking suffers: run the camera at 15 fps, or compare `PIPELINE_FE=1` / `CPU_ORB=1` (runbook C2) |
+| Virtual-screen viewer costs CPU (software drawing) | 1 | Watch `dropped frs`. A real DisplayPort monitor, or a DP dummy plug, removes the cost |
 | STorM32 firmware won't accept angle commands | 2 | Discovery first (T1–T5); operator-assisted fallback |
 | 3 s relocalisation window too short | 2 | Early warning; phase B aims for a merge |
 | Rover has no usable encoders | 3 | Decide before Stage 3; add encoders |

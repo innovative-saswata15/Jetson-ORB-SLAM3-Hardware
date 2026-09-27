@@ -7,24 +7,29 @@ Part of the [overall plan](plan.md). Stage 2 ([stage2.md](stage2.md)) builds on 
 - an Intel RealSense D435;
 - a manually driven rover.
 
-Then record baseline numbers that Stage 2 is measured against.
+**Current scope: Stage 1 only.** Stage 2 and Stage 3 aren't planned yet, so Milestone 2 needs
+only route A (section 4.6). The exact steps are in [stage1_runbook.md](stage1_runbook.md), and what
+actually happened, with real outputs, is in [progress_log.md](progress_log.md).
 
 **Two milestones:**
 
-| | Proves | Rough time |
-|---|---|---|
-| **Milestone 1**: handheld | The repo runs on our Jetson with our camera, live | 1–2 days |
-| **Milestone 2**: on the rover | The same on the target vehicle, with saved trajectories and baseline numbers | 3–5 days |
+| | Proves | Rough time | Status |
+|---|---|---|---|
+| **Milestone 1**: handheld | The repo runs on our Jetson with our camera, live | 1–2 days | Steps 1–3 done; Step 4 next |
+| **Milestone 2**: on the rover | The same on the target vehicle | 2–4 days | not started |
 
 **What we add to the repo in this stage** (the library under `src/`, `include/` and `Thirdparty/`
 stays untouched):
 
-| File | Purpose |
-|---|---|
-| `Examples/Stereo/RealSense_D435.yaml` | Calibration for our D435 unit |
-| `Examples/Stereo/stereo_realsense_D435_rover.cc` | A copy of the original live driver that exits cleanly, saves trajectories and logs events |
-| `CMakeLists.txt` (3 lines) | Build target for the rover driver |
-| `tools/summarize_run.py` | Turns one run's logs into the numbers we compare |
+| File | Purpose | Needed for |
+|---|---|---|
+| `Examples/Stereo/RealSense_D435.yaml` | Calibration for our D435 unit (committed `d1821b9`) | **Everything.** It's the only addition needed to run the plain repo accurately on our camera |
+| `Examples/Stereo/stereo_realsense_D435_rover.cc` + `CMakeLists.txt` target | A copy of the original live driver, with the **same SLAM calls and camera settings**, that stops with `q`, runs headless, saves trajectories and logs events | Milestone 2 **with measurements** only |
+| `tools/rover_run.sh`, `tools/summarize_run.py` | One command per rover run; turns a run into numbers | Milestone 2 with measurements only |
+
+**Without a monitor:** the original driver needs a display (its viewer and Stop button). We use a
+**virtual screen over VNC**: Xvfb + openbox + x11vnc on the Jetson, and an SSH tunnel with
+TigerVNC on the PC. See [runbook Part V](stage1_runbook.md#part-v-virtual-screen-over-vnc-when-theres-no-monitor).
 
 ---
 
@@ -184,7 +189,7 @@ sudo make install && sudo ldconfig
 ```bash
 rs-enumerate-devices | grep -E "Name|Serial Number|Firmware Version|Usb Type Descriptor"
 # Name: Intel RealSense D435 ; Usb Type Descriptor: 3.2   <- must be 3.x, not 2.1
-realsense-viewer      # on the Jetson desktop: enable Infrared 1 + Infrared 2, 640x480, 30 fps
+realsense-viewer      # on a display (monitor, or DISPLAY=:1 with the virtual screen): Infrared 1 + 2, 640x480, 30 fps
 ```
 **D435 firmware:** each librealsense release lists a recommended camera firmware in its release
 notes. If `rs-enumerate-devices` shows an older one, download that firmware image and run
@@ -263,12 +268,14 @@ Changing them would mean we're no longer testing the repo as-is.
 **unmodified** driver, so this result is purely the repo's.
 
 **Setup:**
-- a monitor, keyboard and mouse on the Jetson (the driver always opens its viewer);
+- a display for the driver's viewer: a monitor on the Jetson (DisplayPort), **or** the virtual
+  screen over VNC (runbook Part V; then prefix the command below with `DISPLAY=:1` and run it
+  over SSH);
 - the D435 plugged directly into a Jetson USB port;
 - check `lsusb -t` shows **5000M** for the camera, or `rs-enumerate-devices` shows USB 3.x;
 - hold the camera by hand, or tape it to a board. It must not wobble relative to your hand.
 
-**Run** (on the Jetson desktop, in a terminal):
+**Run** (on the Jetson desktop in a terminal, or over SSH with `DISPLAY=:1` in front):
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware
 tegrastats --interval 1000 --logfile ~/live_m1_tegrastats.log &     # GPU/CPU/RAM record
@@ -348,15 +355,24 @@ would be meaningless.
 
 ### 4.3 Remote operation
 
-The rover moves, so we work over the network:
-- **SSH** over Wi-Fi to start runs, inside `tmux` so a Wi-Fi drop doesn't kill the run.
-- **To watch the viewer** (optional): run with the viewer on and use VNC, or `ssh -X`, which is
-  slow. Or run headless (`--no-viewer`, section 4.4) and review afterwards.
-- Stop the rover before stopping a run, and wait ~5 s (section 4.4, shutdown).
+The rover moves, so we work over the network. **SSH** over Wi-Fi starts runs, inside `tmux` so a
+Wi-Fi drop doesn't kill the run. Then choose one of two ways:
+
+| | **Visual only** | **With measurements** |
+|---|---|---|
+| Program | The original `stereo_realsense_D435i`, unmodified | The rover driver (4.4), via `tools/rover_run.sh` |
+| Viewing and stopping | The virtual screen over VNC (runbook Part V); click **Stop** in VNC | SSH only (`--no-viewer`); press `q` |
+| Evidence | A screen recording of the loop closing | Saved trajectories and a summary with numbers (loops, end-point error, tracking time), and optionally a recording |
+
+Either way, stop the rover before stopping a run, and wait ~5 s, so loop closure can finish.
 
 ### 4.4 The rover driver
 
-**Why we need it.** The original driver has three limitations for rover runs:
+**Only needed for Milestone 2 *with measurements*** (4.3). The SLAM is identical: same library,
+same camera settings, same `TrackStereo()` calls. Its additions only affect running on a rover
+and collecting data.
+
+**Why it exists.** The original driver has three limitations for rover runs:
 1. It can only be stopped with the viewer's **Stop** button, which needs a display.
 2. It **never saves a trajectory**, so drift can't be measured.
 3. It records nothing about tracking health: losses, resets, tracked-point counts.
@@ -554,43 +570,42 @@ print(f"run={run.name} loops={loops} merges={merges} relocalized={relocs} "
 
 ### 4.6 Baseline drive tests
 
-**Why:** these are the reference numbers for Stage 2. Each Stage 2 feature targets one of these
-routes, and is judged by how much it changes that route's numbers.
+**Now: route A only.** It shows the repo working on the rover. Routes B and C exist to be compared
+against Stage 2's gimbal features (G3, G4), so they're recorded **only if Stage 2 is started**.
 
 **Driving rules, for every run:**
 - speed ≤ 0.5 m/s, and turns ≤ 30°/s, like the handheld walk;
 - the same operator, the same time of day and lighting, and the same start mark: tape an X on
   the floor, plus a line for the heading;
-- at the end, stop exactly on the start mark, wait ~5 s, then press `q`.
+- at the end, stop exactly on the start mark, wait ~5 s, then end the run (`q`, or **Stop** in
+  VNC).
 
 **Routes:**
 
-| Route | Description | What it shows | Stage 2 feature it tests |
+| Route | Description | What it shows | Needed |
 |---|---|---|---|
-| **A. Closed loop** | ~30–50 m around rooms or a building block. Ends at the start mark, **facing the same heading** | Normal loop closure and end-point error. This is the "does the repo work on a rover" route | G1 (stability) |
-| **B. Out-and-back** | Drive ~20–30 m along a corridor, **turn around**, drive back to the start mark | The weak case: the return trip sees everything from the other side, so a loop closure is unlikely and drift stays | G3 (coverage sweeps) |
-| **C. Blank wall** | Drive normally for ~10 m (so the map has more than 10 keyframes), approach a featureless wall until tracking is lost, stop, then turn away and continue back to the start | Tracking loss: relocalisation vs new map | G4 (recovery sweeps) |
+| **A. Closed loop** | ~30–50 m around rooms or a building block. Ends at the start mark, **facing the same heading** | Normal loop closure and end-point error: "does the repo work on a rover" | **Now** (Milestone 2) |
+| **B. Out-and-back** | Drive ~20–30 m along a corridor, **turn around**, drive back to the start mark | The weak case: the return trip sees everything from the other side, so a loop closure is unlikely and drift stays | Only for Stage 2 (reference for G3) |
+| **C. Blank wall** | Drive normally for ~10 m (so the map has more than 10 keyframes), approach a featureless wall until tracking is lost, stop, then turn away and continue back to the start | Tracking loss: relocalisation vs new map | Only for Stage 2 (reference for G4) |
 
 **Repeat each route 3 times.** Live runs vary, and one run can't show a difference.
 
-**Folder naming:** `~/runs/<date>_<route><n>_base`, e.g. `20261003-101500_B2_base`.
+**Folder naming** (with measurements): `~/runs/<date>_<route><n>_base`, e.g.
+`20261003-101500_A2_base`.
 
-**Results table.** Fill it in from `summarize_run.py`, and keep it as `~/runs/baseline.md`:
+**Results table** (with measurements), from `summarize_run.py`, kept as `~/runs/route_A.txt`:
 
 | Run | loops | merges | relocalized | new_maps | lost_events | split | path_m | endpoint_pct |
 |---|---|---|---|---|---|---|---|---|
 | A1 … A3 | | | | | | | | |
-| B1 … B3 | | | | | | | | |
-| C1 … C3 | | | | | | | | |
 
-Also note, from `events.csv`, the **typical `tracked` count** while tracking is OK (the median),
-and how low it drops just before a loss on route C. Stage 2's early-warning threshold (G4) is set
-from these values.
+If Stage 2 is started later, first add B1–B3 and C1–C3. Also note the median `tracked` count
+while tracking is OK, and how low it drops just before a loss on route C: Stage 2's early-warning
+threshold (G4) is set from those.
 
-**Milestone 2 is done** when:
-- route A closes its loop in all 3 runs, with an end-point error of a few % of the path or less;
-- routes B and C have 3 baseline runs each;
-- the median `tracked` count is recorded.
+**Milestone 2 is done** when route A closes its loop in all 3 runs and doesn't end split. With
+measurements, the end-point error should also be a few % of the path or less. **Stage 1 is then
+complete.**
 
 ---
 
