@@ -99,12 +99,14 @@ git status --short
 ```
 Expect:
 - `M CMakeLists.txt`;
-- `?? Examples/Stereo/stereo_realsense_D435_rover.cc`, `?? plan/` and `?? tools/`;
-- `?? .claude/`, which is editor data. **Don't add it.**
+- `?? Examples/Stereo/stereo_realsense_D435_rover.cc`, `?? plan/` and `?? tools/`.
+
+Local tool and editor folders (`.claude/`, `.vscode/`) and build outputs are excluded by
+`.gitignore`, so they don't appear here.
 
 ```bash
 git add CMakeLists.txt Examples/Stereo/stereo_realsense_D435_rover.cc plan tools
-git status --short          # the four paths now staged; .claude/ still "??"
+git status --short          # the four paths now staged
 git commit -m "Stage 1: rover driver, run tools and plan documents"
 git push origin main
 git log --oneline -1        # note this commit id
