@@ -308,10 +308,18 @@ realsense-viewer
 ```
 1. Turn on **Stereo Module**. Enable **Infrared 1** and **Infrared 2**, set them to
    **640×480, 30 fps**, and check both images move live.
-2. If the viewer offers a **firmware update** (recommended version for this librealsense), accept
-   it. **Don't unplug during the update.** Replug afterwards and repeat D2d.
+2. **Firmware:** compare `Firmware Version` with `Recommended Firmware Version` in D2d's output.
+   - **Older than recommended:** accept the viewer's update offer. **Don't unplug during the
+     update.** Replug afterwards and repeat D2d.
+   - **Same or newer:** keep it, and **decline** any offer, which would be a downgrade. Our camera
+     has 5.17.3.10 against a recommended 5.16.0.1 (librealsense 2.55.1); newer D400 firmware
+     works with older librealsense. Revisit only if streams misbehave.
 
-**✅ Check:** both IR images are live at 30 fps, and the firmware is up to date.
+**✅ Check:** both IR images are live at 30 fps, and the firmware is the recommended version or
+newer.
+
+If `realsense-viewer` isn't installed, or no monitor is at hand, skip D2e. Step E1 streams both IR
+cameras with the rover driver over SSH, and checks the same thing.
 
 ### D3. Pangolin v0.6 🤖
 ```bash
