@@ -197,6 +197,7 @@ Problems hit on the way, and their fixes:
 | `vncviewer` never opened | Several commands were pasted into one terminal. After `ssh` starts, the rest isn't run on the PC | Tunnel and viewer in **separate terminals**; `ssh -N` for a tunnel-only session |
 | Nothing visible via the tunnel | `x11vnc` reported `listen6: bind: Address already in use`: something else holds port 5900 on IPv6, and `localhost` could reach that instead of our x11vnc | Use port **5910** (`-rfbport 5910`) and tunnel to **`127.0.0.1`** explicitly |
 | Viewer syntax | TigerVNC reads `host:N` as display number N | Use `vncviewer 127.0.0.1::5910` (a double colon means "port") |
+| Restarting gave `Xvfb: server already running` and openbox `A window manager is already running` (and `Xinerama extension is not present`) | Display `:1` now belonged to **Ubuntu's own graphical session** (the GNOME login screen, which runs even without a monitor), not to our Xvfb. x11vnc attached to it, so **TigerVNC showed Ubuntu's login screen** | Moved the virtual screen to display **`:99`**, which desktop sessions never use. All commands now use `Xvfb :99` and `DISPLAY=:99`. Runbook V3 also checks what's running before starting anything |
 
 The final procedure is in runbook **Part V**.
 
@@ -204,8 +205,13 @@ The final procedure is in runbook **Part V**.
 with the **live camera image** in the VNC viewer on the PC, and a screen recording of the VNC
 window worked.
 
-**Decision:** no monitor from now on. Every runbook command that opens a window uses
-`DISPLAY=:1`, viewed through VNC.
+**Decision:** no monitor from now on. Every runbook command that opens a window uses the virtual
+screen, viewed through VNC.
+
+**Later change: display `:1` → `:99`.** Attempts 1 and 2 (sections 10–11) used `DISPLAY=:1`.
+Afterwards, `:1` turned out to be taken by Ubuntu's own login-screen session (see the last row
+of the table above), so the virtual screen moved to `:99`. From then on every command uses
+`DISPLAY=:99`.
 
 ---
 

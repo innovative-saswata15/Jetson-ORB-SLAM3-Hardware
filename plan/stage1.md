@@ -31,7 +31,7 @@ stays untouched):
 (its viewer and Stop button). The Jetson runs a **virtual screen** (Xvfb + openbox + x11vnc), which
 the PC shows through an SSH tunnel with TigerVNC (`tigervnc` on Fedora, `tigervnc-viewer` on
 Ubuntu). Every program with a window is started over SSH
-with `DISPLAY=:1` in front. See [runbook Part V](stage1_runbook.md#part-v-virtual-screen-over-vnc-our-display).
+with `DISPLAY=:99` in front. See [runbook Part V](stage1_runbook.md#part-v-virtual-screen-over-vnc-our-display).
 
 ---
 
@@ -191,7 +191,7 @@ sudo make install && sudo ldconfig
 ```bash
 rs-enumerate-devices | grep -E "Name|Serial Number|Firmware Version|Usb Type Descriptor"
 # Name: Intel RealSense D435 ; Usb Type Descriptor: 3.2   <- must be 3.x, not 2.1
-DISPLAY=:1 realsense-viewer      # watched in VNC (runbook Part V): Infrared 1 + 2, 640x480, 30 fps
+DISPLAY=:99 realsense-viewer      # watched in VNC (runbook Part V): Infrared 1 + 2, 640x480, 30 fps
 ```
 **D435 firmware:** each librealsense release lists a recommended camera firmware in its release
 notes. If `rs-enumerate-devices` shows an older one, download that firmware image and run
@@ -271,7 +271,7 @@ Changing them would mean we're no longer testing the repo as-is.
 
 **Setup:**
 - the virtual screen running and the VNC viewer open on the PC (runbook Part V). The command
-  below runs over SSH with `DISPLAY=:1`, and its windows appear in VNC;
+  below runs over SSH with `DISPLAY=:99`, and its windows appear in VNC;
 - the D435 plugged directly into a Jetson USB port;
 - check `lsusb -t` shows **5000M** for the camera, or `rs-enumerate-devices` shows USB 3.x;
 - hold the camera by hand, or tape it to a board. It must not wobble relative to your hand.
@@ -280,7 +280,7 @@ Changing them would mean we're no longer testing the repo as-is.
 ```bash
 mkdir -p ~/evidence/m1 && cd ~/Jetson-ORB-SLAM3-Hardware
 tegrastats --interval 1000 > ~/evidence/m1/tegrastats.log &        # GPU/CPU/RAM record
-DISPLAY=:1 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
+DISPLAY=:99 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
     Examples/Stereo/RealSense_D435.yaml 2>&1 | tee ~/evidence/m1/live_m1.log
 ```
 

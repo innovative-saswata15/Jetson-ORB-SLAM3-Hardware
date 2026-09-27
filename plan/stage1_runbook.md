@@ -13,7 +13,7 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
   sudo apt install -y git rsync openssh-client tigervnc-viewer           # Ubuntu
   ```
   🤖 **Jetson** means the Jetson, **over SSH**. No monitor is used. Programs with windows run on
-  the Jetson's **virtual screen** (`DISPLAY=:1`), which you watch from the PC through VNC
+  the Jetson's **virtual screen** (`DISPLAY=:99`), which you watch from the PC through VNC
   (**Part V**). Start Part V before any step that opens a window.
 - **User and paths on the Jetson:** user `orb-slam3`; the repo at `~/Jetson-ORB-SLAM3-Hardware`.
 - Replace `<jetson-ip>` with the Jetson's address (`hostname -I` on the Jetson). Ours is
@@ -327,7 +327,7 @@ charge-only.
 
 **D2e. Live image and firmware** (on the virtual screen: Part V running, VNC open on the PC):
 ```bash
-DISPLAY=:1 realsense-viewer
+DISPLAY=:99 realsense-viewer
 ```
 1. Turn on **Stereo Module**. Enable **Infrared 1** and **Infrared 2**, set them to
    **640×480, 30 fps**, and check both images move live.
@@ -488,10 +488,10 @@ that we view from the PC. **Start it (V2–V4) at the beginning of every session
 window: Parts D2e, F, G1, H1 and the visual-only runs in H and I.
 
 How it works:
-- **Xvfb** creates virtual display `:1`. It was already installed in A4; it's the same tool
+- **Xvfb** creates virtual display `:99`. It was already installed in A4; it's the same tool
   `run_euroc.sh` uses over SSH.
 - **openbox** is a tiny window manager, so windows can be moved.
-- **x11vnc** shares display `:1`, on port **5910**, reachable **only** from the Jetson itself.
+- **x11vnc** shares display `:99`, on port **5910**, reachable **only** from the Jetson itself.
 - An **SSH tunnel** carries it to the PC, and **TigerVNC** shows it.
 
 The viewer is drawn in software (a virtual screen has no GPU). That costs some CPU, so watch the
@@ -517,17 +517,36 @@ pkill -f "ssh .*-L 59"
 ```
 
 ### V3. Start the virtual screen 🤖
-In an SSH session, inside tmux, so it survives an SSH drop:
+The virtual screen keeps running until the Jetson reboots or you stop it (V6). So **first check
+whether it's already up**:
+```bash
+pgrep -a "Xvfb|openbox|x11vnc"; ss -ltn | grep 5910
+```
+If you see `Xvfb :99 ...`, `openbox`, one `x11vnc`, and `127.0.0.1:5910`, **it's already running:
+skip to V4**.
+
+Otherwise, start whatever is missing. The commands below are safe to re-run: each piece starts
+only if it isn't running. Run them in an SSH session, inside tmux, so they survive an SSH drop:
 ```bash
 tmux new -s vscreen
-Xvfb :1 -screen 0 1920x1080x24 &
-sleep 2
-DISPLAY=:1 openbox &
-x11vnc -display :1 -localhost -rfbport 5910 -nopw -forever -bg -noxdamage -o ~/x11vnc.log
-ss -ltn | grep 5910
+pgrep -f "Xvfb :99" >/dev/null || { Xvfb :99 -screen 0 1920x1080x24 & sleep 2; }
+pgrep -x openbox   >/dev/null || { DISPLAY=:99 openbox & sleep 1; }
+pgrep -x x11vnc    >/dev/null || x11vnc -display :99 -localhost -rfbport 5910 -nopw -forever -bg -noxdamage -o ~/x11vnc.log
+pgrep -a "Xvfb|openbox|x11vnc"; ss -ltn | grep 5910
 ```
-**✅ Check:** the last line shows `LISTEN ... 127.0.0.1:5910`. The Openbox message about a missing
-menu file is harmless. Detach from tmux with **Ctrl-b, then d**.
+**✅ Check:**
+- `Xvfb :99`, `openbox` and one `x11vnc` are listed;
+- a `LISTEN ... 127.0.0.1:5910` line appears (a second `[::1]:5910` line is fine).
+
+The Openbox message about a missing menu file is harmless. Detach from tmux with **Ctrl-b, then
+d**.
+
+**Why display `:99`:** the Jetson runs Ubuntu's own graphical session (the GNOME login screen)
+even without a monitor, and that session can take a low display number such as `:1`. We used
+`:1` at first. After one reboot it belonged to the login screen, so VNC showed **Ubuntu's login
+screen** instead of our virtual screen. Desktop sessions never use `:99`. If VNC ever shows a login
+screen, run `pkill x11vnc` and start again from V3. If `:99` is ever taken, use `:98` everywhere
+instead (in `Xvfb`, `openbox`, `x11vnc`, and `DISPLAY=:98` in the run commands).
 
 ### V4. Connect from the PC 🖥️
 Use **two separate terminal windows**. Don't paste both commands into one: once `ssh` starts, the
@@ -548,7 +567,7 @@ display, so it's correct. If it warns that the connection is unencrypted, accept
 already encrypts it.
 
 ### V5. Run programs on the virtual screen
-Prefix the command with `DISPLAY=:1` (Part F shows it). Windows appear in the VNC viewer about
+Prefix the command with `DISPLAY=:99` (Part F shows it). Windows appear in the VNC viewer about
 10 s later, while the vocabulary loads; drag them apart. If a window looks frozen or black, press
 **Left Alt three times** in the VNC window to repaint.
 
@@ -592,7 +611,7 @@ only way to end it.
 ```bash
 mkdir -p ~/evidence/m1 && cd ~/Jetson-ORB-SLAM3-Hardware
 tegrastats --interval 1000 > ~/evidence/m1/tegrastats.log &
-DISPLAY=:1 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
+DISPLAY=:99 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
     Examples/Stereo/RealSense_D435.yaml 2>&1 | tee ~/evidence/m1/live_m1.log
 ```
 About 10 s later, two windows appear in VNC: **"ORB-SLAM3: Current Frame"** (the IR image with
@@ -672,7 +691,7 @@ every time.
 ### G1. Handheld with the viewer 🤖 (virtual screen running, VNC open)
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware
-DISPLAY=:1 tools/rover_run.sh bench1
+DISPLAY=:99 tools/rover_run.sh bench1
 ```
 Walk the same room loop as in F3, return to the X, and hold still ~5 s. Then press **q** in the
 terminal, not in the viewer.
@@ -729,7 +748,7 @@ Move the camera a little, then press **Ctrl-C** (not q).
   point), on rubber dampers.
 - [ ] Facing forward and level. The two IR lenses are horizontal.
 - [ ] USB cable ≤ 1 m, strain-relieved at both ends, tied to the chassis.
-- [ ] **Field of view check**, rover on the floor: `DISPLAY=:1 realsense-viewer` (watched in VNC),
+- [ ] **Field of view check**, rover on the floor: `DISPLAY=:99 realsense-viewer` (watched in VNC),
   Infrared 1 and 2. **No part of the rover** (wheels, antenna, cables) is visible in either image.
 - [ ] `lsusb -t` still shows `5000M` for the camera with everything mounted.
 
@@ -772,7 +791,7 @@ Drive ~10 m straight at walking pace, stop, wait ~5 s, and press **q**.
 - `grep -c "dropped frs" $(ls -d ~/runs/*_smoke1_line | tail -1)/console.log` is small.
 
 If tracking is lost while driving, go slower first. Then check for vibration: if the image is
-blurry in `DISPLAY=:1 realsense-viewer` (in VNC) while driving, improve the dampers.
+blurry in `DISPLAY=:99 realsense-viewer` (in VNC) while driving, improve the dampers.
 
 **📋 Send:** the smoke run's `summary.txt`.
 
@@ -849,6 +868,8 @@ rsync -a orb-slam3@<jetson-ip>:runs orb-slam3@<jetson-ip>:evidence ~/Desktop/jet
 | Terminal doesn't echo after a crash | Type `reset` and press Enter |
 | `bind ... Address already in use` when starting the tunnel | An old tunnel holds the port: `pkill -f "ssh .*-L 59"` on the PC (V2) |
 | VNC viewer doesn't open, or opens but stays empty | The tunnel and viewer must be in **separate** terminals (V4). Check `ss -ltn \| grep 5910` on the Jetson (V3). Use `vncviewer 127.0.0.1::5910` (double colon) |
-| VNC shows a black screen after the driver starts | Press Left Alt three times in the VNC window; check the driver was started with `DISPLAY=:1` |
+| VNC shows a black screen after the driver starts | Press Left Alt three times in the VNC window; check the driver was started with `DISPLAY=:99` |
 | `x11vnc`: `listen6: bind: Address already in use` | Something else holds 5900 on IPv6; that's why Part V uses port 5910 |
+| `Xvfb`: `server already running` / `Cannot establish any listening sockets`, and openbox: `A window manager is already running` | Either our virtual screen from an earlier session is still up (fine: check with `pgrep -a "Xvfb\|openbox\|x11vnc"` and continue with V4), or another X server holds that display number. With `:99` the latter shouldn't happen (V3) |
+| VNC shows **Ubuntu's login screen** | x11vnc attached to Ubuntu's own session, not our Xvfb (this happened with display `:1`). `pkill x11vnc`, then start again from V3; everything uses `:99` |
 | Anything else | Stage 1, section 5; or send the last 30 lines of the relevant log |

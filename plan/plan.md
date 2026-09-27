@@ -58,7 +58,7 @@ This is the overview. Each stage has its own detailed document:
 | Current scope | **Stage 1 only** | Stages 2 and 3 later, if at all |
 | Milestone 2 routes | **Route A only** (3 runs). B and C only if Stage 2 starts | B and C exist as references for Stage 2's gimbal features |
 | Rover driver | Optional: only for Milestone 2 **with measurements** | The SLAM is identical. The original driver over VNC is enough for a visual demo |
-| Display | **No monitor, ever.** A virtual screen over VNC (Xvfb + openbox + x11vnc on port 5910, SSH tunnel, TigerVNC); programs with windows run with `DISPLAY=:1` | The original driver needs a display for its viewer and Stop button. Verified working: the camera feed shows in VNC and the VNC window can be recorded |
+| Display | **No monitor, ever.** A virtual screen over VNC (Xvfb + openbox + x11vnc on port 5910, SSH tunnel, TigerVNC); programs with windows run with `DISPLAY=:99` | The original driver needs a display for its viewer and Stop button. Verified working: the camera feed shows in VNC and the VNC window can be recorded |
 | JetPack install | 6.2.3 flashed to NVMe with SDK Manager (native Ubuntu); components through `apt install nvidia-jetpack` | SDK Manager's component step failed over USB; apt does the same job |
 | Camera firmware | Keep 5.17.3.10 (librealsense 2.55.1 recommends 5.16.0.1) | Newer firmware works; "updating" would be a downgrade |
 | Git workflow | Commit on the PC, push, `git pull --ff-only` on the Jetson; Jetson-made files go to the PC by `scp` | Pulling needs no login, pushing would |
