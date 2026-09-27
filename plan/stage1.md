@@ -27,9 +27,10 @@ stays untouched):
 | `Examples/Stereo/stereo_realsense_D435_rover.cc` + `CMakeLists.txt` target | A copy of the original live driver, with the **same SLAM calls and camera settings**, that stops with `q`, runs headless, saves trajectories and logs events | Milestone 2 **with measurements** only |
 | `tools/rover_run.sh`, `tools/summarize_run.py` | One command per rover run; turns a run into numbers | Milestone 2 with measurements only |
 
-**Without a monitor:** the original driver needs a display (its viewer and Stop button). We use a
-**virtual screen over VNC**: Xvfb + openbox + x11vnc on the Jetson, and an SSH tunnel with
-TigerVNC on the PC. See [runbook Part V](stage1_runbook.md#part-v-virtual-screen-over-vnc-when-theres-no-monitor).
+**Display: a virtual screen over VNC. No monitor is used.** The original driver needs a display
+(its viewer and Stop button). The Jetson runs a **virtual screen** (Xvfb + openbox + x11vnc), which
+the PC shows through an SSH tunnel with TigerVNC. Every program with a window is started over SSH
+with `DISPLAY=:1` in front. See [runbook Part V](stage1_runbook.md#part-v-virtual-screen-over-vnc-our-display).
 
 ---
 
@@ -189,7 +190,7 @@ sudo make install && sudo ldconfig
 ```bash
 rs-enumerate-devices | grep -E "Name|Serial Number|Firmware Version|Usb Type Descriptor"
 # Name: Intel RealSense D435 ; Usb Type Descriptor: 3.2   <- must be 3.x, not 2.1
-realsense-viewer      # on a display (monitor, or DISPLAY=:1 with the virtual screen): Infrared 1 + 2, 640x480, 30 fps
+DISPLAY=:1 realsense-viewer      # watched in VNC (runbook Part V): Infrared 1 + 2, 640x480, 30 fps
 ```
 **D435 firmware:** each librealsense release lists a recommended camera firmware in its release
 notes. If `rs-enumerate-devices` shows an older one, download that firmware image and run
@@ -268,19 +269,18 @@ Changing them would mean we're no longer testing the repo as-is.
 **unmodified** driver, so this result is purely the repo's.
 
 **Setup:**
-- a display for the driver's viewer: a monitor on the Jetson (DisplayPort), **or** the virtual
-  screen over VNC (runbook Part V; then prefix the command below with `DISPLAY=:1` and run it
-  over SSH);
+- the virtual screen running and the VNC viewer open on the PC (runbook Part V). The command
+  below runs over SSH with `DISPLAY=:1`, and its windows appear in VNC;
 - the D435 plugged directly into a Jetson USB port;
 - check `lsusb -t` shows **5000M** for the camera, or `rs-enumerate-devices` shows USB 3.x;
 - hold the camera by hand, or tape it to a board. It must not wobble relative to your hand.
 
-**Run** (on the Jetson desktop in a terminal, or over SSH with `DISPLAY=:1` in front):
+**Run** (over SSH):
 ```bash
-cd ~/Jetson-ORB-SLAM3-Hardware
-tegrastats --interval 1000 --logfile ~/live_m1_tegrastats.log &     # GPU/CPU/RAM record
-./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
-    Examples/Stereo/RealSense_D435.yaml 2>&1 | tee ~/live_m1.log
+mkdir -p ~/evidence/m1 && cd ~/Jetson-ORB-SLAM3-Hardware
+tegrastats --interval 1000 > ~/evidence/m1/tegrastats.log &        # GPU/CPU/RAM record
+DISPLAY=:1 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
+    Examples/Stereo/RealSense_D435.yaml 2>&1 | tee ~/evidence/m1/live_m1.log
 ```
 
 **What you'll see:**
@@ -310,12 +310,11 @@ Stereo needs no initialisation motion: the map starts from the first frame.
 - `*Loop detected` appears when you return to the start, and the trajectory visibly snaps into
   place.
 
-**Evidence to keep** in `~/evidence/m1/`:
-- `~/euroc_gpu.log`, `~/euroc_src.log` and (if run) `~/euroc_cpu.log`;
-- `~/live_m1.log` and `~/live_m1_tegrastats.log`;
-- a **screen recording** of the viewer during the loop, e.g. GNOME's built-in recorder
-  (Ctrl+Shift+Alt+R), or `ffmpeg -f x11grab`. The original driver saves no trajectory, so this
-  video is the M1 evidence.
+**Evidence to keep:**
+- on the Jetson, in `~/evidence/m1/`: copies of `~/euroc_gpu.log` and `~/euroc_src.log` (and
+  `~/euroc_cpu.log` if run), plus `live_m1.log` and `tegrastats.log` from this run;
+- on the PC: a **screen recording of the VNC window** during the loop (Fedora's GNOME recorder,
+  Ctrl+Shift+Alt+R). The original driver saves no trajectory, so this video is the M1 evidence.
 
 **Milestone 1 is done** when Steps 1–4 pass.
 

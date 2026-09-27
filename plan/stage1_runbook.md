@@ -5,7 +5,9 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
 **📋 Send** checkpoint, paste the output back for review.
 
 - **Where commands run:** 🖥️ **PC** means your Fedora PC, in `~/Desktop/code/Jetson-ORB-SLAM3-Hardware`.
-  🤖 **Jetson** means the Jetson, over SSH or at its own desktop.
+  🤖 **Jetson** means the Jetson, **over SSH**. No monitor is used. Programs with windows run on
+  the Jetson's **virtual screen** (`DISPLAY=:1`), which you watch from the PC through VNC
+  (**Part V**). Start Part V before any step that opens a window.
 - **User and paths on the Jetson:** user `orb-slam3`; the repo at `~/Jetson-ORB-SLAM3-Hardware`.
 - Replace `<jetson-ip>` with the Jetson's address (`hostname -I` on the Jetson). Ours is
   `192.168.1.5`.
@@ -21,7 +23,7 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
 | C | EuRoC check with the prebuilt binary (downloads MH01) | 30 min + download | ✅ C1 done: ATE 3.72 cm. C2 skipped (optional) |
 | D | Build from source with RealSense support | 2–3 h (mostly waiting) | ✅ done: ATE 4.06 cm. librealsense and Pangolin were already installed |
 | E | Our D435's calibration file | 15 min | ✅ done: commit `d1821b9` |
-| V | Virtual screen over VNC (only if there's no monitor) | 15 min | ⏳ **next** (set up and tested; not yet used with the driver) |
+| V | Virtual screen over VNC: **our only display** | 15 min | ✅ done: the driver's windows and live camera image show in VNC, and recording the VNC window works |
 | F | Live handheld run (original driver): **Milestone 1** | 30 min | ⏳ |
 | G | Rover driver bench tests: only if Milestone 2 should produce saved trajectories and numbers | 30 min | optional |
 | H | Mount, power, first rover drive | ½–1 day | |
@@ -316,9 +318,9 @@ Connected with a **USB 3 C-to-C cable**; the dev kit's USB-C port supports host 
 hardware guide). A USB-C cable must be USB 3 data-rated: many C-to-C cables are USB 2 or
 charge-only.
 
-**D2e. Live image and firmware** (at the Jetson's desktop):
+**D2e. Live image and firmware** (on the virtual screen: Part V running, VNC open on the PC):
 ```bash
-realsense-viewer
+DISPLAY=:1 realsense-viewer
 ```
 1. Turn on **Stereo Module**. Enable **Infrared 1** and **Infrared 2**, set them to
    **640×480, 30 fps**, and check both images move live.
@@ -332,8 +334,8 @@ realsense-viewer
 **✅ Check:** both IR images are live at 30 fps, and the firmware is the recommended version or
 newer.
 
-If `realsense-viewer` isn't installed, or no monitor is at hand, skip D2e. Step E1 streams both IR
-cameras with the rover driver over SSH, and checks the same thing.
+If `realsense-viewer` isn't installed, skip D2e. Step E1 streams both IR cameras with the rover
+driver over SSH, and checks the same thing.
 
 ### D3. Pangolin v0.6 🤖
 ```bash
@@ -471,12 +473,14 @@ git log --oneline -1
 
 ---
 
-## Part V: virtual screen over VNC (when there's no monitor)
+## Part V: virtual screen over VNC (our display)
 
-The original driver always opens its viewer, and its **Stop** button is the only way to end it,
-so it needs a display. With a monitor on the Jetson (the dev kit has only **DisplayPort**: use a
-DP monitor or a DP-to-HDMI cable), skip this part. Without one, we give the Jetson a **virtual
-screen** and view it from the PC:
+**We don't use a monitor.** The original driver always opens its viewer, and its **Stop** button
+is the only way to end it, so it needs a display. Instead, the Jetson gets a **virtual screen**
+that we view from the PC. **Start it (V2–V4) at the beginning of every session** that opens a
+window: Parts D2e, F, G1, H1 and the visual-only runs in H and I.
+
+How it works:
 - **Xvfb** creates virtual display `:1`. It was already installed in A4; it's the same tool
   `run_euroc.sh` uses over SSH.
 - **openbox** is a tiny window manager, so windows can be moved.
@@ -553,31 +557,30 @@ On the PC, close the viewer and press Ctrl-C in the tunnel terminal. **Next time
 
 ## Part F: live handheld run with the original driver (**Milestone 1**, Step 4)
 
-This needs a display: a **monitor** on the Jetson, or the **virtual screen** from Part V. The
-original driver always opens its viewer, and its **Stop** button is the only way to end it.
+**Before starting:** the virtual screen is running and the VNC viewer is open on the PC (Part V,
+V2–V4). The original driver's windows appear there; its **Stop** button, clicked in VNC, is the
+only way to end it.
 
 ### F1. Prepare
 - The D435 is plugged directly into the Jetson; D2d passes (USB 3.x).
 - A room with texture: furniture, shelves, posters. Normal lighting, no direct sun into the
   camera.
 - Tape an **X** on the floor as the start mark, with an arrow for the heading.
-- Start a screen recording. With a monitor, use the Jetson's GNOME recorder (Ctrl+Shift+Alt+R).
-  With the virtual screen, record the **VNC window on the PC**; Fedora's GNOME recorder works
-  (Ctrl+Shift+Alt+R).
+- Start a screen recording of the **VNC window on the PC**. Fedora's GNOME recorder works
+  (Ctrl+Shift+Alt+R). The recording stays on the PC and is the Milestone 1 evidence.
 - The camera cable must reach while you walk a small loop around the room. The Jetson stays on
   the desk.
 
-### F2. Run 🤖
-**With the virtual screen** (Part V running, VNC viewer open on the PC), over SSH:
+### F2. Run 🤖 (over SSH)
 ```bash
 mkdir -p ~/evidence/m1 && cd ~/Jetson-ORB-SLAM3-Hardware
 tegrastats --interval 1000 > ~/evidence/m1/tegrastats.log &
 DISPLAY=:1 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
     Examples/Stereo/RealSense_D435.yaml 2>&1 | tee ~/evidence/m1/live_m1.log
 ```
-**With a monitor:** the same, run in a terminal on the Jetson's desktop, without `DISPLAY=:1`.
-Two windows open: **"ORB-SLAM3: Current Frame"** (IR image with green features) and
-**"ORB-SLAM3: Map Viewer"** (3D).
+About 10 s later, two windows appear in VNC: **"ORB-SLAM3: Current Frame"** (the IR image with
+green features) and **"ORB-SLAM3: Map Viewer"** (3D). Drag them apart so both are visible in the
+recording.
 
 ### F3. Walk
 1. Stand on the X, facing the arrow. Tracking starts immediately; stereo needs no special motion.
@@ -585,9 +588,8 @@ Two windows open: **"ORB-SLAM3: Current Frame"** (IR image with green features) 
    round a loop of ~10–20 m. Tracking runs at about 15 fps (every other frame is skipped, see
    E1), so slow, smooth movement matters.
 3. Come back to the X, **facing the arrow again**. Hold still for ~5 s.
-4. Click **Stop** in the Map Viewer menu (in the VNC window, when using the virtual screen), then
-   close the windows. Ctrl-C does *not* stop this driver.
-5. Stop tegrastats with `kill %1`, and stop the screen recording.
+4. Click **Stop** in the Map Viewer menu, in the VNC window. Ctrl-C does *not* stop this driver.
+5. Stop tegrastats with `kill %1` in the SSH session, and stop the screen recording on the PC.
 
 ### F4. Verify 🤖
 ```bash
@@ -608,8 +610,8 @@ cp ~/euroc_gpu.log ~/euroc_src.log ~/evidence/m1/ ; ls ~/evidence/m1
 **If no loop closes:** walk slower, return along the same final few metres, check the room has
 texture, and try again.
 
-**📋 Send:** the F4 output. Milestone 1 is then complete; save the screen recording in
-`~/evidence/m1/`.
+**📋 Send:** the F4 output. Milestone 1 is then complete. Keep the screen recording on the PC,
+e.g. in `~/Desktop/jetson-orbslam3-results/m1/`.
 
 ---
 
@@ -622,10 +624,10 @@ driver over VNC plus a screen recording, see H3), skip it.
 These tests check that the rover driver is trustworthy: it exits cleanly and saves correct files
 every time.
 
-### G1. Handheld with the viewer 🤖 (monitor, or the virtual screen from Part V)
+### G1. Handheld with the viewer 🤖 (virtual screen running, VNC open)
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware
-DISPLAY=:1 tools/rover_run.sh bench1        # with a monitor: omit DISPLAY=:1, run on the desktop
+DISPLAY=:1 tools/rover_run.sh bench1
 ```
 Walk the same room loop as in F3, return to the X, and hold still ~5 s. Then press **q** in the
 terminal, not in the viewer.
@@ -651,7 +653,7 @@ terminal, not in the viewer.
     slow speeds; Stage 1, section 5 has options if tracking suffers.
 
 ### G2. Headless over SSH 🤖
-From an SSH session, with no monitor needed:
+From an SSH session, with no viewer at all:
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware
 tools/rover_run.sh bench2 --no-viewer
@@ -682,8 +684,8 @@ Move the camera a little, then press **Ctrl-C** (not q).
   point), on rubber dampers.
 - [ ] Facing forward and level. The two IR lenses are horizontal.
 - [ ] USB cable ≤ 1 m, strain-relieved at both ends, tied to the chassis.
-- [ ] **Field of view check**, rover on the floor: `realsense-viewer` on a display (a monitor, or
-  `DISPLAY=:1 realsense-viewer` with Part V), Infrared 1 and 2. **No part of the rover** (wheels, antenna, cables) is visible in either image.
+- [ ] **Field of view check**, rover on the floor: `DISPLAY=:1 realsense-viewer` (watched in VNC),
+  Infrared 1 and 2. **No part of the rover** (wheels, antenna, cables) is visible in either image.
 - [ ] `lsusb -t` still shows `5000M` for the camera with everything mounted.
 
 ### H2. Power
@@ -725,7 +727,7 @@ Drive ~10 m straight at walking pace, stop, wait ~5 s, and press **q**.
 - `grep -c "dropped frs" $(ls -d ~/runs/*_smoke1_line | tail -1)/console.log` is small.
 
 If tracking is lost while driving, go slower first. Then check for vibration: if the image is
-blurry in `realsense-viewer` while driving, improve the dampers.
+blurry in `DISPLAY=:1 realsense-viewer` (in VNC) while driving, improve the dampers.
 
 **📋 Send:** the smoke run's `summary.txt`.
 
@@ -754,9 +756,9 @@ The rules for every run:
 cd ~/Jetson-ORB-SLAM3-Hardware
 tools/rover_run.sh A1_base --no-viewer      # then A2_base, A3_base; press q at the end
 ```
-**Visual only** (original driver over VNC, see H3): the F2 command with
-`tee ~/evidence/m2/live_A1.log` (and A2, A3), recording the VNC window. End each run with
-**Stop**.
+**Visual only** (original driver over VNC, see H3): first run `mkdir -p ~/evidence/m2`. Then use
+the F2 command with `tee ~/evidence/m2/live_A1.log` (and A2, A3), recording the VNC window on the
+PC. End each run with **Stop** in VNC.
 
 **✅ Check after each run:** with measurements, the summary line was printed and the folder has
 all 8 files; visual only, the log and recording exist. If a run was disturbed (someone walked in

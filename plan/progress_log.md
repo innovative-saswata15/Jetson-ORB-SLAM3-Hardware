@@ -180,9 +180,9 @@ source build and (for correct scale) our calibration file; none of our tooling.
   EuRoC timing. It's fine for slow movement; running the camera at 15 fps, or trying
   `PIPELINE_FE`, stay options if it proves a problem.
 
-## 9. No monitor: a virtual screen over VNC (runbook Part V)
+## 9. Display: a virtual screen over VNC (runbook Part V)
 
-There is currently no monitor for the Jetson (the dev kit has only DisplayPort out). The
+We don't use a monitor for the Jetson (the dev kit has only DisplayPort out). The
 original driver needs a display for its viewer and Stop button, so we set up a **virtual screen**:
 - **Xvfb** display `:1`;
 - **openbox**, so windows can be moved;
@@ -200,13 +200,19 @@ Problems hit on the way, and their fixes:
 
 The final procedure is in runbook **Part V**.
 
-**Status:** the procedure is written and every part started correctly. The full run with the
-driver's windows showing in VNC (Part F) is **next**.
+**Status: working.** The original driver, started over SSH with `DISPLAY=:1`, showed its windows
+with the **live camera image** in the VNC viewer on the PC, and a screen recording of the VNC
+window worked.
+
+**Decision:** no monitor from now on. Every runbook command that opens a window uses
+`DISPLAY=:1`, viewed through VNC.
 
 ---
 
 ## Current position
 
 - ✅ Parts A–E of the runbook.
-- ⏳ **Next: Part V (virtual screen), then Part F** (first live handheld SLAM walk, Milestone 1).
+- ✅ Part V: the virtual screen works (camera feed visible in VNC, recording works).
+- ⏳ **Next: Part F.** Tape the X start mark, then do the walk (F1, F3) and the checks (F4). This
+  is the first live handheld SLAM run, and completes Milestone 1.
 - Then Milestone 2 on the rover: route A only, since Stage 2 isn't planned now.
