@@ -20,7 +20,8 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
   `192.168.1.5`.
 - **What actually happened at each step**, with the real outputs:
   [progress_log.md](progress_log.md).
-- **Scope right now: Stage 1 only.** Stage 2 (gimbal) and Stage 3 (LiDAR) aren't planned yet, so
+- **Scope:** the gimbal was dropped (2026-10-03); the next phases are the
+  [paper reproduction](paper_reproduction_runbook.md) and [Stage 2](stage2_runbook.md) (IMU + LiDAR). So
   Milestone 2 needs only route A (Part I).
 
 | Part | Content | Time | Status |
@@ -157,7 +158,7 @@ ls -l tools/*.sh tools/*.py
 - `CLEAN`;
 - the pull says `Fast-forward`;
 - `git log` shows **the same commit id as on the PC**;
-- `plan/` lists `plan.md stage1.md stage1_runbook.md stage2.md stage3.md`;
+- `plan/` lists the plan documents, including `plan.md`, `stage1.md` and `stage1_runbook.md`;
 - two `grep` matches;
 - both tools are executable (`-rwxr-xr-x`).
 
@@ -743,7 +744,7 @@ Move the camera a little, then press **Ctrl-C** (not q).
 
 ## Part H: mount, power, first rover drive (Milestone 2, 4.1–4.3)
 
-### H1. Mount (rigid bracket; **no gimbal yet**, this is the baseline)
+### H1. Mount (rigid bracket; this is the baseline)
 - [ ] D435 held by its **two M3 holes** on the back (or the tripod thread plus an anti-rotation
   point), on rubber dampers.
 - [ ] Facing forward and level. The two IR lenses are horizontal.
@@ -805,8 +806,8 @@ same thing.
 ## Part I: route A runs (**Milestone 2**, 4.6)
 
 Only **route A** (closed loop) is needed now: it shows the repo working on the rover. Routes B
-(out-and-back) and C (blank wall) exist to be compared against Stage 2's gimbal features. Record
-them **only if Stage 2 is started**; they're described in [stage1.md, 4.6](stage1.md#46-baseline-drive-tests).
+(out-and-back) and C (blank wall) were meant for the dropped gimbal features, so they're
+optional; they're described in [stage1.md, 4.6](stage1.md#46-baseline-drive-tests).
 
 ### I1. Prepare route A (once)
 - **Start mark:** an X plus a heading arrow, taped on the floor.

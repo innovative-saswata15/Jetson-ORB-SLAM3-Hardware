@@ -359,11 +359,77 @@ writes to `~/evidence/m2/`.
 
 ---
 
+## 15. Change of direction (2026-10-03): gimbal dropped, paper reproduction next
+
+**Decision** (from the project discussion):
+- The STorM32 gimbal isn't feasible, because of weight-balancing problems, so it's removed
+  entirely. `plan/stage2.md` (gimbal add-on) and `plan/stage3.md` (encoders + LiDAR) were
+  deleted; they remain in git history.
+- The next goal is to **recreate the paper's results on our hardware**. Then **ablations of our
+  hardware stack against an environment mapped with a standard 3D LiDAR**.
+- The final system uses **only the D435, an IMU and a LiDAR**.
+
+**What was built** (all outside the core repository; nothing in `src/`, `include/`,
+`Thirdparty/`, `Examples/` or `CMakeLists.txt` changed):
+
+| File | Purpose |
+|---|---|
+| `repro/common.py` | Dataset registry, how each mode calls the repo's own programs, run-time switches |
+| `repro/fetch_datasets.py` | EuRoC (the repo's own download method), TUM-VI download + preparation, KITTI layout check |
+| `repro/run_matrix.py` | Every paper experiment as a suite; one folder per run; resumable; `tegrastats` alongside |
+| `repro/evaluate.py` | ATE (SE(3)/Sim(3), Umeyama), KITTI relative errors, console/timing/power parsing |
+| `repro/paper_reference.py` | The paper's numbers (Tables 1–10, power, feature equivalence) |
+| `repro/make_report.py` | `REPORT.md`: every table with the paper's value next to ours, plus our D435 section |
+| `repro/cpp/feature_equivalence.cc` | GPU vs CPU extractor on the same frames (paper Sec. 3.1.5) |
+| `repro/cpp/d435_record_euroc.cc` | Records the D435 to the EuRoC layout, for identical-input replays |
+| `repro/setup_timing_build.sh` | `REGISTER_TIMES` build in a separate git worktree (paper Table 6) |
+| `repro/tools/export_cosplace_onnx.py` | CosPlace ResNet-50 → ONNX, for the CNN loop-closure engine |
+
+**Facts established while building it** (checked in the code):
+- **Trajectory frames:** inertial modes save **IMU body-frame** poses (`GetImuPose`), the frame of
+  the EuRoC/TUM-VI ground truth. Stereo modes save camera-frame poses. EuRoC trajectories use
+  nanosecond timestamps; KITTI's file (`CameraTrajectory.txt`) has none.
+- **Which programs open a viewer:** the inertial EuRoC programs run **without** one;
+  `stereo_euroc`, `stereo_kitti` and `stereo_inertial_tum_vi` always open it (hence `xvfb-run`).
+- **Loop-closure switches:**
+  - loop closing off = settings key `loopClosing: 0`. The repo already ships
+    `Examples/Stereo-Inertial/EuRoC_noloop.yaml`, which is exactly that.
+  - CNN on/off = whether `cosplace_r50_512.fp16.trt` is in the **working directory**.
+- **The timing build:** `REGISTER_TIMES` changes class layouts (`Frame.h`, `Tracking.h`,
+  `System.h`), so it needs a completely separate build. Output goes to `ExecMean.txt`.
+- **`IMU.T_b_c1`** maps camera-frame points into the IMU body frame: it equals EuRoC's published
+  cam0 `T_BS`. So it takes Kalibr's `T_ic`. The comment in `RealSense_D435i.yaml` is misleading.
+- **TUM-VI:** its timestamps/IMU files aren't in this branch. They're generated from the dataset
+  in the exact format the program reads.
+
+**Tested on the PC** (no Jetson needed):
+- **Evaluator math against known answers:**
+  - Umeyama recovers a known transform exactly, and scale 2.0;
+  - the SE(3) ATE equals `run_euroc.sh`'s own scorer (0.049212 for both);
+  - relative error is 0 for identical trajectories, and behaves like KITTI's devkit for a 1 %
+    scale error;
+  - timestamp matching keeps the 20 ms window.
+- **The full pipeline, end to end** (runner → evaluator → report), with stand-in programs: each
+  arm received the right switches, re-runs skipped finished runs, and a known 3 cm per-axis noise
+  came out as 5.16 cm ATE (expected √3 × 3 = 5.2).
+- **C++:** both tools compile with all warnings on; `feature_equivalence` against the repo's real
+  `include/ORBextractor.h`.
+- **Not yet run on the Jetson.**
+
+**Docs:**
+- new [paper_reproduction_runbook.md](paper_reproduction_runbook.md) and
+  [stage2_runbook.md](stage2_runbook.md) (IMU + LiDAR fusion);
+- `plan.md` and `workflow.md` rewritten for the new direction; gimbal references removed from the
+  Stage 1 documents.
+
+---
+
 ## Current position
 
 - ✅ Parts A–E, V, and **Milestone 1** (section 11).
 - ✅ G1 bench test (section 12). G2 and G3 skipped (visual-only way).
 - ❌ H4 smoke run: failed outdoors in poor light (section 13), and skipped.
-- ✅ **Milestone 2, run A1: loop closed, no tracking loss** (section 14).
-- ⏳ **Next: runs A2 and A3** of the same loop, logged to `~/evidence/m2/live_A2.log` and
-  `live_A3.log`. Three passing runs complete Milestone 2, and Stage 1.
+- ✅ **Milestone 2, run A1: loop closed, no tracking loss** (section 14). A2 and A3 still to do.
+- ✅ Reproduction pipeline written and tested on the PC (section 15).
+- ⏳ **Next:** [paper_reproduction_runbook.md](paper_reproduction_runbook.md), R1–R3 (datasets,
+  builds, CNN engine), then the R4 smoke test on the Jetson.

@@ -1,13 +1,14 @@
 # Stage 1: the repo running on our hardware
 
-Part of the [overall plan](plan.md). Stage 2 ([stage2.md](stage2.md)) builds on everything here.
+Part of the [overall plan](plan.md). The [paper reproduction](paper_reproduction_runbook.md) and
+[Stage 2](stage2_runbook.md) (IMU + LiDAR fusion) build on everything here.
 
 **Goal:** run this repository's GPU-accelerated ORB-SLAM3, **unmodified**, live on:
 - a Jetson Orin Nano;
 - an Intel RealSense D435;
 - a manually driven rover.
 
-**Current scope: Stage 1 only.** Stage 2 and Stage 3 aren't planned yet, so Milestone 2 needs
+**Scope:** the gimbal was dropped (2026-10-03), so Milestone 2 needs
 only route A (section 4.6). The exact steps are in [stage1_runbook.md](stage1_runbook.md), and what
 actually happened, with real outputs, is in [progress_log.md](progress_log.md).
 
@@ -334,8 +335,8 @@ tracking loss. See [progress_log.md](progress_log.md), sections 10–11.)
 
 ### 4.1 Camera mount
 
-**Why a rigid bracket and no gimbal yet:** this stage produces the *baseline*. Stage 2 then adds
-the gimbal and compares against it. If the baseline already used the gimbal, the comparison
+**Why a rigid bracket:** this stage produces the *baseline* (the gimbal has since been dropped
+from the project). Later configurations are compared against it. If the baseline used extra hardware, the comparison
 would be meaningless.
 
 1. **Bracket:** mount the D435 by its two **M3 holes on the back**, or its **1/4"-20 tripod
@@ -388,7 +389,7 @@ and collecting data.
 3. It records nothing about tracking health: losses, resets, tracked-point counts.
 
 A new file fixes all three. **The original driver and the library stay untouched.** This driver
-is also the program the Stage 2 gimbal add-on plugs into.
+was also meant as the base for later add-ons.
 
 **Implemented:** [Examples/Stereo/stereo_realsense_D435_rover.cc](../Examples/Stereo/stereo_realsense_D435_rover.cc),
 its build target in `CMakeLists.txt`, and the launcher
@@ -432,11 +433,11 @@ there instead.
 2. **Signal flag:** change `bool b_continue_session;` to `volatile sig_atomic_t
    b_continue_session;`. It's written from the Ctrl-C handler, so it must be safe to use inside
    a signal handler. `exit_loop_handler` itself stays as it is.
-3. **Keyboard thread** (new; `q` quits; Stage 2 adds more keys). It uses "cbreak" terminal mode:
+3. **Keyboard thread** (new; `q` quits; other keys are stored for later use). It uses "cbreak" terminal mode:
    single keypresses without Enter, no echo, and **Ctrl-C still works**, because `ISIG` stays on.
    ```cpp
    std::atomic<bool> g_quit{false};
-   std::atomic<char> g_key{0};              // last key for Stage 2; 0 = none
+   std::atomic<char> g_key{0};              // last other key; 0 = none
 
    void keyboard_thread() {
        termios old{}, cb{};
@@ -593,7 +594,8 @@ print(f"run={run.name} loops={loops} merges={merges} relocalized={relocs} "
 ### 4.6 Baseline drive tests
 
 **Now: route A only.** It shows the repo working on the rover. Routes B and C exist to be compared
-against Stage 2's gimbal features (G3, G4), so they're recorded **only if Stage 2 is started**.
+against the dropped gimbal features, so they're optional now. Stage 2's own routes are in
+[stage2_runbook.md](stage2_runbook.md), S2-7.
 
 **Driving rules, for every run:**
 - speed ≤ 0.5 m/s, and turns ≤ 30°/s, like the handheld walk;
@@ -609,8 +611,8 @@ against Stage 2's gimbal features (G3, G4), so they're recorded **only if Stage 
 | Route | Description | What it shows | Needed |
 |---|---|---|---|
 | **A. Closed loop** | ~30–50 m around rooms or a building block. Comes back over the start mark **facing the same heading**, and ends 2–3 m further along the start of the route | Normal loop closure and end-point error: "does the repo work on a rover" | **Now** (Milestone 2) |
-| **B. Out-and-back** | Drive ~20–30 m along a corridor, **turn around**, drive back to the start mark | The weak case: the return trip sees everything from the other side, so a loop closure is unlikely and drift stays | Only for Stage 2 (reference for G3) |
-| **C. Blank wall** | Drive normally for ~10 m (so the map has more than 10 keyframes), approach a featureless wall until tracking is lost, stop, then turn away and continue back to the start | Tracking loss: relocalisation vs new map | Only for Stage 2 (reference for G4) |
+| **B. Out-and-back** | Drive ~20–30 m along a corridor, **turn around**, drive back to the start mark | The weak case: the return trip sees everything from the other side, so a loop closure is unlikely and drift stays | Optional (useful later as a Stage 2 route, R-B) |
+| **C. Blank wall** | Drive normally for ~10 m (so the map has more than 10 keyframes), approach a featureless wall until tracking is lost, stop, then turn away and continue back to the start | Tracking loss: relocalisation vs new map | Optional (useful later as a Stage 2 route, R-C) |
 
 **Repeat each route 3 times.** Live runs vary, and one run can't show a difference.
 
@@ -623,9 +625,7 @@ against Stage 2's gimbal features (G3, G4), so they're recorded **only if Stage 
 |---|---|---|---|---|---|---|---|---|
 | A1 … A3 | | | | | | | | |
 
-If Stage 2 is started later, first add B1–B3 and C1–C3. Also note the median `tracked` count
-while tracking is OK, and how low it drops just before a loss on route C: Stage 2's early-warning
-threshold (G4) is set from those.
+Routes B and C are no longer required (the gimbal features they were meant to measure were dropped).
 
 **Milestone 2 is done** when route A closes its loop in all 3 runs and doesn't end split. With
 measurements, the end-point error should also be a few % of the path or less. **Stage 1 is then
