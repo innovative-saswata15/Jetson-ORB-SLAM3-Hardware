@@ -296,13 +296,74 @@ closes the loop. The evidence:
 
 ---
 
+## 12. Rover driver bench test G1 (`bench1`)
+
+Handheld, with the viewer on the virtual screen: `DISPLAY=:99 tools/rover_run.sh bench1`.
+
+| Result | Value |
+|---|---|
+| Files | `console.log`, `events.csv`, `frames.txt`, `keyframes.txt`, `run_info.txt`, `tegrastats.log`, `versions.txt` |
+| Keyframes | 61 |
+| Length | ~89 s (89 `tracked` lines, one per second) |
+| Tracking time | mean 60–68 ms, max up to ~90 ms per frame (≈15 fps, as before) |
+| **`summary.txt`** | **missing** |
+
+**Why `summary.txt` was missing:** `tools/rover_run.sh` runs with `set -euo pipefail`, so if the
+driver exits with a non-zero code, the launcher stops before writing the summary. The driver had
+saved everything, so a non-zero exit during shutdown (after saving) is the likely cause.
+ORB-SLAM3's background threads are still running at exit. It can't be confirmed from
+`console.log`: a "Segmentation fault" message is printed by the shell, not the program.
+- **Workaround:** make the summary by hand with `python3 tools/summarize_run.py <run folder>`.
+- **Fix:** written (the launcher always summarises, and records the driver's exit code), tested
+  with a fake driver that crashes after saving, but **not applied**: the change was reverted
+  before being committed.
+
+G2 and G3 (headless, and Ctrl-C) weren't run: the rover runs below used the visual-only way.
+
+## 13. First rover drive (H4 smoke run, straight line): failed in poor light
+
+`tools/rover_run.sh smoke1_line --no-viewer`, driven **outdoors**, because the room is too small
+for a 10 m straight line, **in poor lighting**:
+
+```
+loops=0 merges=1 relocalized=1 new_maps=4 lost_events=128 split=True keyframes=102
+path_m=8.67 endpoint_pct=n/a median_tracked=265 mean_track_ms=50.1 dropped_frames=4206
+```
+
+- Tracking was lost **128 times**, and 4 maps were stored; smaller restarted maps were discarded
+  silently.
+- Tracking speed wasn't the problem: 50 ms per frame.
+- **Cause: lighting.** The D435's IR cameras work from ambient light, with the projector off in
+  this mode. In dim light the images are dark and noisy, with too little texture to track.
+- **Decision:** skip the straight-line smoke test (no lit space for it), and go straight to route A
+  in the lit room.
+
+## 14. Milestone 2, route A, run 1 (A1): **loop closed on the rover**
+
+Driven indoors in the lit room, with the loop as large as the room allows. Ran **visual only**:
+the original driver with the Part F command (`DISPLAY=:99`, viewed and recorded through VNC).
+
+| Check | Result |
+|---|---|
+| `*Loop detected` | **1** ✅ |
+| `Stored map with ID` | **0** ✅: no tracking loss |
+| `GPU ORB enabled` | yes |
+| `dropped frs` lines | 1415 |
+| `PR: Loop detected with Reffine Sim3` | 0 (confirmed at once) |
+
+**Mistake to avoid:** the Part F command writes to `~/evidence/m1/live_m1.log`, so this run
+**overwrote the Milestone 1 attempt 2 log**. Attempt 2 is still documented by its screen
+recording and by the numbers in section 11. This run's log was moved to
+`~/evidence/m2/live_A1.log`, and the runbook now has a separate command for rover runs that
+writes to `~/evidence/m2/`.
+
+---
+
 ## Current position
 
-- ✅ Parts A–E of the runbook.
-- ✅ Part V: the virtual screen works (camera feed visible in VNC, recording works).
-- ❌ Part F attempt 1: no loop closure (tracking lost near the end, and the walk ended standing
-  still). See section 10.
-- ✅ **Part F attempt 2: loop closed, no tracking loss. Milestone 1 complete** (section 11).
-- ⏳ **Next: Milestone 2** on the rover, route A. Part G (rover-driver bench tests) is needed only
-  for the "with measurements" option; then Part H (mount, power, first drive) and Part I.
-- Then Milestone 2 on the rover: route A only, since Stage 2 isn't planned now.
+- ✅ Parts A–E, V, and **Milestone 1** (section 11).
+- ✅ G1 bench test (section 12). G2 and G3 skipped (visual-only way).
+- ❌ H4 smoke run: failed outdoors in poor light (section 13), and skipped.
+- ✅ **Milestone 2, run A1: loop closed, no tracking loss** (section 14).
+- ⏳ **Next: runs A2 and A3** of the same loop, logged to `~/evidence/m2/live_A2.log` and
+  `live_A3.log`. Three passing runs complete Milestone 2, and Stage 1.

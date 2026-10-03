@@ -16,7 +16,7 @@ actually happened, with real outputs, is in [progress_log.md](progress_log.md).
 | | Proves | Rough time | Status |
 |---|---|---|---|
 | **Milestone 1**: handheld | The repo runs on our Jetson with our camera, live | 1–2 days | ✅ **done** (Step 4 passed on attempt 2) |
-| **Milestone 2**: on the rover | The same on the target vehicle | 2–4 days | not started |
+| **Milestone 2**: on the rover | The same on the target vehicle | 2–4 days | in progress: route A run 1 passed (visual only), A2 and A3 next |
 
 **What we add to the repo in this stage** (the library under `src/`, `include/` and `Thirdparty/`
 stays untouched):
@@ -597,6 +597,8 @@ against Stage 2's gimbal features (G3, G4), so they're recorded **only if Stage 
 
 **Driving rules, for every run:**
 - speed ≤ 0.5 m/s, and turns ≤ 30°/s, like the handheld walk;
+- **good lighting.** In this mode the IR cameras use only ambient light (projector off). Our
+  outdoor run in poor light lost tracking 128 times (progress log, section 13);
 - the same operator, the same time of day and lighting, and the same start mark: tape an X on
   the floor, plus a line for the heading;
 - at the end, drive **past the X and continue 2–3 m along the start of the route**, in the original direction, then stop and end the run (`q`, or **Stop** in VNC);

@@ -32,9 +32,9 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
 | E | Our D435's calibration file | 15 min | ✅ done: commit `d1821b9` |
 | V | Virtual screen over VNC: **our only display** | 15 min | ✅ done: the driver's windows and live camera image show in VNC, and recording the VNC window works |
 | F | Live handheld run (original driver): **Milestone 1** | 30 min | ✅ **passed on attempt 2**: loop closed, no tracking loss |
-| G | Rover driver bench tests: only if Milestone 2 should produce saved trajectories and numbers | 30 min | optional |
-| H | Mount, power, first rover drive | ½–1 day | |
-| I | Route A closed-loop runs: **Milestone 2** | ½ day | |
+| G | Rover driver bench tests: only if Milestone 2 should produce saved trajectories and numbers | 30 min | G1 done. G2 and G3 skipped (we use visual only) |
+| H | Mount, power, first rover drive | ½–1 day | Mounted. H4 smoke run failed **outdoors in poor light**, and was skipped |
+| I | Route A closed-loop runs: **Milestone 2** | ½ day | ✅ **A1 passed** (visual only: loop closed, no tracking loss). ⏳ A2, A3 next |
 
 ---
 
@@ -793,6 +793,11 @@ Drive ~10 m straight at walking pace, stop, wait ~5 s, and press **q**.
 If tracking is lost while driving, go slower first. Then check for vibration: if the image is
 blurry in `DISPLAY=:99 realsense-viewer` (in VNC) while driving, improve the dampers.
 
+**Lighting matters.** In this mode the IR cameras see only ambient light (the projector is off).
+Drive only in **well-lit** places. Our first smoke run, outdoors in poor light, lost tracking 128
+times. If there's no lit space for a 10 m straight line, skip H4: route A in a lit room tests the
+same thing.
+
 **📋 Send:** the smoke run's `summary.txt`.
 
 ---
@@ -822,9 +827,18 @@ The rules for every run:
 cd ~/Jetson-ORB-SLAM3-Hardware
 tools/rover_run.sh A1_base --no-viewer      # then A2_base, A3_base; press q at the end
 ```
-**Visual only** (original driver over VNC, see H3): first run `mkdir -p ~/evidence/m2`. Then use
-the F2 command with `tee ~/evidence/m2/live_A1.log` (and A2, A3), recording the VNC window on the
-PC. End each run with **Stop** in VNC.
+**Visual only** (original driver over VNC, see H3). **Don't reuse the F2 command as-is:** it
+writes to `~/evidence/m1/live_m1.log`, and would overwrite Milestone 1's log (this happened on
+our A1). Use this instead, changing `A1` to `A2` and `A3` for the next runs, and record the VNC
+window on the PC:
+```bash
+mkdir -p ~/evidence/m2 && cd ~/Jetson-ORB-SLAM3-Hardware
+DISPLAY=:99 ./Examples/Stereo/stereo_realsense_D435i Vocabulary/ORBvoc.txt \
+    Examples/Stereo/RealSense_D435.yaml 2>&1 | tee ~/evidence/m2/live_A1.log
+```
+End each run with **Stop** in VNC.
+
+**Our A1** passed this way: `*Loop detected` 1, `Stored map with ID` 0.
 
 **✅ Check after each run:** with measurements, the summary line was printed and the folder has
 all 8 files; visual only, the log and recording exist. If a run was disturbed (someone walked in
@@ -865,6 +879,8 @@ rsync -a orb-slam3@<jetson-ip>:runs orb-slam3@<jetson-ip>:evidence ~/Desktop/jet
 | `WARNING: camera is not on USB 3` | Cable, port or plug orientation (D2d) |
 | `WARNING: no camera frames for 2 s` | USB dropout. Check the cable strain relief; watch `sudo dmesg -w` |
 | Many `dropped frs`, `mean_track_ms` > 33 | Drive slower. Compare with a `CPU_ORB=1` run. Stage 1, section 5 |
+| Tracking lost over and over (`lost_events` in the tens or hundreds, many new maps) | Usually **poor light**: the IR cameras need ambient light, with the projector off. Drive in a well-lit place. Otherwise, check what the camera sees (`DISPLAY=:99 realsense-viewer`): mostly floor? rover parts? blur? |
+| `summary.txt` missing after `tools/rover_run.sh` | The driver exited with a non-zero code after saving, so the launcher stopped early. Make it by hand: `python3 tools/summarize_run.py <run folder>` |
 | Terminal doesn't echo after a crash | Type `reset` and press Enter |
 | `bind ... Address already in use` when starting the tunnel | An old tunnel holds the port: `pkill -f "ssh .*-L 59"` on the PC (V2) |
 | VNC viewer doesn't open, or opens but stays empty | The tunnel and viewer must be in **separate** terminals (V4). Check `ss -ltn \| grep 5910` on the Jetson (V3). Use `vncviewer 127.0.0.1::5910` (double colon) |

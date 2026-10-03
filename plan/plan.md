@@ -159,10 +159,12 @@ the results.
 | Live tracking speed | ≈15 fps effective (every other 30 fps frame skipped). Fine at slow speeds |
 | Virtual screen over VNC (runbook V) | ✅ working: the driver's windows and live camera image show in VNC; recording the VNC window works |
 | First live SLAM walk (runbook F), **Milestone 1** | ✅ **passed on attempt 2**: `*Loop detected`, no tracking loss, one map. Attempt 1 failed (tracking lost near the end, and the walk ended standing still); the procedure was corrected |
-| Milestone 2 (rover, route A) | not started |
+| Rover driver bench test G1 | ✅ files saved, ~60–68 ms per frame. `summary.txt` missing (the launcher stops early on a non-zero driver exit; make it by hand) |
+| H4 smoke run (straight line) | ❌ failed **outdoors in poor light** (tracking lost 128 times), and skipped: the room is too small for a straight line |
+| Milestone 2 (rover, route A, visual only) | ✅ **A1: loop closed, no tracking loss.** ⏳ A2 and A3 next |
 
-**Next action: Milestone 2** on the rover (runbook Parts H and I; Part G only for the "with
-measurements" option).
+**Next action:** route A runs **A2 and A3** (runbook Part I, visual only, logs in `~/evidence/m2/`).
+Three passing runs complete Milestone 2 and Stage 1.
 
 ## Conventions used in all stages
 
@@ -184,6 +186,7 @@ measurements" option).
 | Pangolin or librealsense build issues on JetPack 6.2.3 | 1 | **Resolved:** both were already installed; the repo built cleanly |
 | D435 on USB 2 | 1 | **Resolved:** USB 3.2 with a USB 3 C-to-C cable. Re-check `5000M` after mounting on the rover |
 | Tracking slower than 30 fps (≈15 fps effective, ~75 ms per frame on EuRoC) | 1 | Move and drive slowly. If tracking suffers: run the camera at 15 fps, or compare `PIPELINE_FE=1` / `CPU_ORB=1` (runbook C2) |
+| Poor lighting: the IR cameras need ambient light with the projector off | 1 | Drive only in well-lit places. The outdoor smoke run in poor light lost tracking 128 times |
 | Virtual-screen viewer costs CPU (software drawing) | 1 | Watch `dropped frs`. If it matters: drag the windows smaller, or run with measurements headless (`--no-viewer`) |
 | STorM32 firmware won't accept angle commands | 2 | Discovery first (T1–T5); operator-assisted fallback |
 | 3 s relocalisation window too short | 2 | Early warning; phase B aims for a merge |
