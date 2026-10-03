@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch / prepare the public benchmarks used by the paper (plan/paper_reproduction_runbook.md, Part R2).
+"""Fetch / prepare the public benchmarks used by the paper (plan/paper_runbook.md, Part R2).
 
 usage:
   fetch_datasets.py euroc [SEQ ...]      # all 11 EuRoC sequences by default (~1.5 GB each)

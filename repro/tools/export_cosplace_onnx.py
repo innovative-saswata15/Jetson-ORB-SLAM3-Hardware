@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Export the CosPlace ResNet-50 (512-d) place-recognition network to ONNX, for the paper's
-CNN loop closure (Sec. 3.3; plan/paper_reproduction_runbook.md, Part R3).
+CNN loop closure (Sec. 3.3; plan/paper_runbook.md, Part R3).
 
 Run this on a PC with PyTorch (not needed on the Jetson):
     pip install torch torchvision onnx

@@ -1,4 +1,4 @@
-# Our own measurement tools (plan/paper_reproduction_runbook.md, Part R3).
+# Our own measurement tools (plan/paper_runbook.md, Part R3).
 # A separate CMake project: it links against the already-built libORB_SLAM3.so of the repository
 # and does not touch the repository's own CMakeLists.txt or sources.
 #

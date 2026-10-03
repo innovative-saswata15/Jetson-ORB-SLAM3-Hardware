@@ -1,4 +1,4 @@
-"""Shared definitions for the paper-reproduction pipeline (plan/paper_reproduction_runbook.md).
+"""Shared definitions for the paper-reproduction pipeline (plan/paper_runbook.md).
 
 Nothing here modifies the repository: it only describes how to call the repository's own,
 unmodified dataset programs (Examples/...) and where their inputs and outputs live.

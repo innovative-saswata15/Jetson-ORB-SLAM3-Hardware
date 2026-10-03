@@ -1,5 +1,5 @@
 // Feature-level GPU-vs-CPU equivalence check (paper arXiv:2608.17874, Sec. 3.1.5).
-// plan/paper_reproduction_runbook.md, Part R4 ("features").
+// plan/paper_runbook.md, Part R4 ("features").
 //
 // Runs the repository's own ORB extractor twice on the same images -- once with the GPU front
 // end (use_gpu = true) and once with the reference CPU extractor (use_gpu = false) -- and reports:

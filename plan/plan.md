@@ -5,7 +5,7 @@ This is the overview. Each phase has its own detailed document:
 | Phase | Document | Status |
 |---|---|---|
 | **Stage 1. The repo on our hardware**: D435 + Jetson, handheld then on the rover | [stage1.md](stage1.md), step by step in [stage1_runbook.md](stage1_runbook.md) | Milestone 1 done; Milestone 2 run A1 passed |
-| **Paper reproduction**: recreate the paper's results on our Jetson, then on our D435 | [paper_reproduction_runbook.md](paper_reproduction_runbook.md) (code in `repro/`) | **Current** |
+| **Paper reproduction**: recreate the paper's results on our Jetson, then on our D435 | [paper_runbook.md](paper_runbook.md) (code in `repro/`) | **Current** |
 | **Stage 2. IMU + LiDAR fusion**: D435 + IMU + LiDAR, evaluated against a 3D-LiDAR-mapped environment | [stage2_runbook.md](stage2_runbook.md) | After the reproduction |
 
 **What has actually been done**, with real outputs and everything we learned along the way:
@@ -109,7 +109,7 @@ TensorRT.
 - **Milestone 2:** route A on the rover. Run A1 passed (loop closed, visual only). A2 and A3
   remain, for repeatability.
 
-### Paper reproduction ([runbook](paper_reproduction_runbook.md))
+### Paper reproduction ([runbook](paper_runbook.md))
 - **Datasets:** `repro/fetch_datasets.py` for EuRoC (11 sequences) and TUM-VI (rooms 1–6); KITTI
   odometry downloaded by hand.
 - **Experiment matrix:** `repro/run_matrix.py` runs every paper table:

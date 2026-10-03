@@ -1,6 +1,6 @@
 // Record the D435's infrared stereo pair in the EuRoC folder layout, so the repository's own,
 // unmodified stereo_euroc program can replay it, under every configuration, on identical input.
-// plan/paper_reproduction_runbook.md, Part R6.
+// plan/paper_runbook.md, Part R6.
 //
 // Camera settings are the same as the repository's live driver
 // (Examples/Stereo/stereo_realsense_D435i.cc): IR 1 + IR 2, 640x480 Y8 @ 30 FPS, projector off,

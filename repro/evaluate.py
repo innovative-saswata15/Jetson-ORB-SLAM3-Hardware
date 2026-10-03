@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Score every run of the reproduction pipeline (plan/paper_reproduction_runbook.md, Part R5).
+"""Score every run of the reproduction pipeline (plan/paper_runbook.md, Part R5).
 
 usage:
   evaluate.py RESULTS_DIR [--force]        # score every run folder (has meta.json) below RESULTS_DIR

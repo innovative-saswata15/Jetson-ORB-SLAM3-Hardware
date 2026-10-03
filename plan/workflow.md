@@ -80,7 +80,7 @@ robustness, runtime and power.
 Documentation: the plan, runbooks for every phase, and a progress log of everything done.
 
 5. Workflow
-Details are in stage1_runbook.md, paper_reproduction_runbook.md and stage2_runbook.md. What
+Details are in stage1_runbook.md, paper_runbook.md and stage2_runbook.md. What
 actually happened is in progress_log.md.
 
 STAGE 1: THE REPO ON OUR HARDWARE

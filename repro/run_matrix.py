@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the paper's experiment matrix on the Jetson (plan/paper_reproduction_runbook.md, Part R4).
+"""Run the paper's experiment matrix on the Jetson (plan/paper_runbook.md, Part R4).
 
 usage:
   run_matrix.py SUITE [--seqs S ...] [--runs N] [--arms A ...] [--build-root DIR]

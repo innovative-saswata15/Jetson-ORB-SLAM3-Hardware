@@ -1,6 +1,6 @@
 # Stage 1: the repo running on our hardware
 
-Part of the [overall plan](plan.md). The [paper reproduction](paper_reproduction_runbook.md) and
+Part of the [overall plan](plan.md). The [paper reproduction](paper_runbook.md) and
 [Stage 2](stage2_runbook.md) (IMU + LiDAR fusion) build on everything here.
 
 **Goal:** run this repository's GPU-accelerated ORB-SLAM3, **unmodified**, live on:

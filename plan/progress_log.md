@@ -417,7 +417,7 @@ writes to `~/evidence/m2/`.
 - **Not yet run on the Jetson.**
 
 **Docs:**
-- new [paper_reproduction_runbook.md](paper_reproduction_runbook.md) and
+- new [paper_runbook.md](paper_runbook.md) and
   [stage2_runbook.md](stage2_runbook.md) (IMU + LiDAR fusion);
 - `plan.md` and `workflow.md` rewritten for the new direction; gimbal references removed from the
   Stage 1 documents.
@@ -431,5 +431,5 @@ writes to `~/evidence/m2/`.
 - ❌ H4 smoke run: failed outdoors in poor light (section 13), and skipped.
 - ✅ **Milestone 2, run A1: loop closed, no tracking loss** (section 14). A2 and A3 still to do.
 - ✅ Reproduction pipeline written and tested on the PC (section 15).
-- ⏳ **Next:** [paper_reproduction_runbook.md](paper_reproduction_runbook.md), R1–R3 (datasets,
+- ⏳ **Next:** [paper_runbook.md](paper_runbook.md), R1–R3 (datasets,
   builds, CNN engine), then the R4 smoke test on the Jetson.

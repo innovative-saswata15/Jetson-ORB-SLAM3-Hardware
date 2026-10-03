@@ -2,7 +2,7 @@
 
 Part of the [overall plan](plan.md). Prerequisites:
 - **Stage 1:** the repo running on our hardware;
-- **the [paper reproduction](paper_reproduction_runbook.md):** our baseline numbers.
+- **the [paper reproduction](paper_runbook.md):** our baseline numbers.
 
 **Goal:** a rover mapping system built from **the D435, an IMU and a LiDAR**, with this
 repository's ORB-SLAM3 as the visual(-inertial) core. It must be evaluated, with ablations,

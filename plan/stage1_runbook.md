@@ -21,7 +21,7 @@ top to bottom. Every step ends with a **✅ Check**. Don't move on until it pass
 - **What actually happened at each step**, with the real outputs:
   [progress_log.md](progress_log.md).
 - **Scope:** the gimbal was dropped (2026-10-03); the next phases are the
-  [paper reproduction](paper_reproduction_runbook.md) and [Stage 2](stage2_runbook.md) (IMU + LiDAR). So
+  [paper reproduction](paper_runbook.md) and [Stage 2](stage2_runbook.md) (IMU + LiDAR). So
   Milestone 2 needs only route A (Part I).
 
 | Part | Content | Time | Status |

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the reproduction report: our numbers next to the paper's (plan/paper_reproduction_runbook.md, R5).
+"""Build the reproduction report: our numbers next to the paper's (plan/paper_runbook.md, R5).
 
 usage: make_report.py [RESULTS_DIR] [-o REPORT.md]
 

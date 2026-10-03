@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Build an instrumented copy of the repository for the per-stage timing table (paper Table 6).
-# plan/paper_reproduction_runbook.md, Part R3.
+# plan/paper_runbook.md, Part R3.
 #
 #   repro/setup_timing_build.sh [DEST]        # default ../Jetson-ORB-SLAM3-timing
 #
