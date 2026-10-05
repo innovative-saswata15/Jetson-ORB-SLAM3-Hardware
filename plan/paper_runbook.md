@@ -124,7 +124,7 @@ tracking times), and the report will say so.
 
 **3. CNN engine for loop closure** (needed for Table 10's "DBoW2 + CNN" arm, and for Table 9).
 The repository doesn't include the CosPlace model.
-1. **On the PC** (needs PyTorch): `pip install torch torchvision onnx`, then
+1. **On the PC** (needs PyTorch): `pip install torch torchvision onnx onnxscript`, then
    `python3 repro/tools/export_cosplace_onnx.py cosplace_r50_512.onnx`.
 2. Copy the `.onnx` to the Jetson's repo root: `scp cosplace_r50_512.onnx orb-slam3@<jetson-ip>:Jetson-ORB-SLAM3-Hardware/`.
 3. **On the Jetson**, build the engine. TensorRT engines only work on the board and version that

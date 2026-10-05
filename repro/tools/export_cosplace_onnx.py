@@ -3,7 +3,7 @@
 CNN loop closure (Sec. 3.3; plan/paper_runbook.md, Part R3).
 
 Run this on a PC with PyTorch (not needed on the Jetson):
-    pip install torch torchvision onnx
+    pip install torch torchvision onnx onnxscript
     python3 export_cosplace_onnx.py cosplace_r50_512.onnx
 
 Then copy the .onnx to the Jetson and build the TensorRT engine there (engines are specific to
@@ -31,8 +31,13 @@ def main() -> int:
     assert d.shape == (1, 512), d.shape
     # Weights stored inside the file (no external .data file): the paper notes externally
     # referenced weights are what made ONNX-Runtime's TensorRT EP hang on the Orin.
-    torch.onnx.export(model, dummy, out, input_names=["input"], output_names=["descriptor"],
-                      opset_version=17, do_constant_folding=True)
+    # PyTorch >= 2.6 writes weights to a side file by default; older versions lack the flag.
+    kw = dict(input_names=["input"], output_names=["descriptor"],
+              opset_version=17, do_constant_folding=True)
+    try:
+        torch.onnx.export(model, dummy, out, external_data=False, **kw)
+    except TypeError:
+        torch.onnx.export(model, dummy, out, **kw)
     print("wrote %s (input 1x3x224x224, output 1x512)" % out)
     return 0
 
