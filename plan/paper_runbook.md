@@ -72,26 +72,50 @@ Paths (override with environment variables if needed):
 
 ## R2. Datasets
 
+EuRoC and TUM-VI are downloaded **on the PC**, then copied to the Jetson over the network. The
+Jetson doesn't download them again. The Jetson is `orb-slam3@172.31.53.140`.
+
+**On the PC: download** (done: all 11 EuRoC sequences, TUM-VI rooms 1–6):
 ```bash
-cd ~/Jetson-ORB-SLAM3-Hardware
-python3 repro/fetch_datasets.py euroc            # all 11 sequences, ~1.5 GB download each
-python3 repro/fetch_datasets.py tumvi            # rooms 1-6 (512x512 EuRoC export)
-python3 repro/fetch_datasets.py status
+cd ~/Desktop/code/Jetson-ORB-SLAM3-Hardware
+REPRO_DATA=~/datasets python3 repro/fetch_datasets.py euroc      # skips sequences already present
+REPRO_DATA=~/datasets python3 repro/fetch_datasets.py tumvi      # also writes the TUM-VI times/IMU files
+REPRO_DATA=~/datasets python3 repro/fetch_datasets.py status
+du -sh ~/datasets/euroc ~/datasets/tumvi                         # how much will be copied
 ```
 
-- **EuRoC** uses the repository's own download method (the same code as `run_euroc.sh`). Finished
-  sequences are skipped, so re-run it after an interruption. The ETH server rate-limits repeated
-  requests (HTTP 429). The script waits 20 min and retries **once**; if a sequence still fails,
-  re-run later. **Fallback:** download on the PC and `rsync` the folder into `~/datasets/euroc/`.
-- **TUM-VI:** the script downloads `dataset-roomN_512_16.tar` and writes the two text files the
-  repository's TUM-VI program needs (`orbslam_times.txt`, `orbslam_imu.txt`). The README says the
-  upstream copies were dropped from this branch; ours are generated from the dataset itself, in
-  the exact format the program reads. If the download host has moved, download the archives
-  manually into `~/datasets/tumvi/` and run `python3 repro/fetch_datasets.py tumvi-prepare`.
+**On the PC: copy to the Jetson** (same layout, `~/datasets/...` on both). `rsync` only sends
+what's missing or changed, so it can be re-run after an interruption:
+```bash
+ssh orb-slam3@172.31.53.140 'mkdir -p ~/datasets && df -h ~'     # check free space first
+rsync -a --info=progress2 --partial ~/datasets/euroc ~/datasets/tumvi orb-slam3@172.31.53.140:datasets/
+```
+- Copy only the dataset folders, not stray `*.inner.zip` or `*.tar` leftovers from interrupted
+  downloads. The command above copies `euroc/` and `tumvi/` as they are; check with
+  `ls ~/datasets/euroc ~/datasets/tumvi` first.
+- Over Wi-Fi this takes a while (tens of GB). An Ethernet cable between the PC and the Jetson, or
+  the same router, is much faster.
+
+**On the Jetson: check that everything arrived:**
+```bash
+cd ~/Jetson-ORB-SLAM3-Hardware
+python3 repro/fetch_datasets.py status       # every EuRoC and TUM-VI sequence must say OK
+```
+The TUM-VI times and IMU files (`orbslam_times.txt`, `orbslam_imu.txt`) were written on the PC and
+travel with the folders. If `status` says `downloaded, run tumvi-prepare`, run
+`python3 repro/fetch_datasets.py tumvi-prepare` on the Jetson.
+
+**About the datasets:**
+- **EuRoC** uses the repository's own download method (the same code as `run_euroc.sh`). The ETH
+  server rate-limits repeated requests (HTTP 429); the script waits 20 min and retries once.
+- **TUM-VI:** the README says the repository's own TUM-VI times/IMU files were dropped from this
+  branch. Ours are generated from the dataset itself, in the exact format the program reads.
 - **KITTI odometry** requires a free registration at cvlibs.net, so download it by hand:
-  `data_odometry_gray.zip` (~22 GB) and `data_odometry_poses.zip`. Unpack both into
+  `data_odometry_gray.zip` (~22 GB) and `data_odometry_poses.zip`, on the PC. Unpack both into
   `~/datasets/kitti/`, so that `sequences/00/{image_0,image_1,times.txt}` and `poses/00.txt` exist.
-  Then check the layout:
+  Copy the unpacked folder, not the zips:
+  `rsync -a --info=progress2 --partial ~/datasets/kitti orb-slam3@172.31.53.140:datasets/`.
+  Then check the layout on the Jetson:
   ```bash
   python3 repro/fetch_datasets.py kitti-check     # every sequence must say OK
   ```
@@ -126,7 +150,7 @@ tracking times), and the report will say so.
 The repository doesn't include the CosPlace model.
 1. **On the PC** (needs PyTorch): `pip install torch torchvision onnx onnxscript`, then
    `python3 repro/tools/export_cosplace_onnx.py cosplace_r50_512.onnx`.
-2. Copy the `.onnx` to the Jetson's repo root: `scp cosplace_r50_512.onnx orb-slam3@<jetson-ip>:Jetson-ORB-SLAM3-Hardware/`.
+2. Copy the `.onnx` to the Jetson's repo root: `scp cosplace_r50_512.onnx orb-slam3@172.31.53.140:Jetson-ORB-SLAM3-Hardware/`.
 3. **On the Jetson**, build the engine. TensorRT engines only work on the board and version that
    built them; it takes about 30 s.
    ```bash

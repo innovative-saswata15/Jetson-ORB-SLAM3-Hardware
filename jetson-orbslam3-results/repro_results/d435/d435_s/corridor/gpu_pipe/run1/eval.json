@@ -1,0 +1,16 @@
+{
+  "console": {
+    "cnn_active": false,
+    "cpu_orb": false,
+    "gpu_orb": true,
+    "loops": 0,
+    "merges": 1,
+    "new_maps": 2
+  },
+  "power": {
+    "samples": 172,
+    "vdd_in_mean_w": 6.847755813953487,
+    "vdd_in_peak_w": 7.478
+  },
+  "timing": {}
+}
