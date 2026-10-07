@@ -1,0 +1,33 @@
+{
+  "arm": "gpu",
+  "build_root": "/home/orb-slam3/Jetson-ORB-SLAM3-Hardware",
+  "cmd": [
+    "xvfb-run",
+    "-a",
+    "-s",
+    "-screen 0 1280x1024x24",
+    "/home/orb-slam3/Jetson-ORB-SLAM3-Hardware/Examples/Stereo/stereo_euroc",
+    "/home/orb-slam3/Jetson-ORB-SLAM3-Hardware/Vocabulary/ORBvoc.txt",
+    "/home/orb-slam3/Jetson-ORB-SLAM3-Hardware/Examples/Stereo/RealSense_D435.yaml",
+    "/home/orb-slam3/datasets/d435/corridor",
+    "/home/orb-slam3/datasets/d435/corridor/times.txt",
+    "run"
+  ],
+  "commit": "f06cee0",
+  "done": true,
+  "engine_linked": true,
+  "exit_code": 135,
+  "front": "gpu",
+  "l4t": "# R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026",
+  "loop": "auto",
+  "mode": "d435_s",
+  "pipe": false,
+  "run": 1,
+  "seq": "corridor",
+  "settings": "default",
+  "suite": "d435",
+  "tag": "run",
+  "timing_stats": false,
+  "trajectory_written": true,
+  "wall_s": 252.1
+}

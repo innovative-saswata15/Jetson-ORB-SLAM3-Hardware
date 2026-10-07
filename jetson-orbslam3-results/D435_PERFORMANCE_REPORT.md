@@ -87,7 +87,7 @@ Table 7 FPS figures come from the instrumented build.
 |---|---|---|---|
 | Stereo tracking time, GPU vs CPU | 69.7 vs 62.1 ms (Table 8) | 69.5 vs 69.5 ms | Same conclusion: no GPU speedup at about VGA resolution |
 | Stereo baseline FPS | 14.4 (Table 7, stereo-inertial) | 14.4 | Practically identical |
-| Pipelined FPS | 28.0 (1.94×) | 21.2 (1.47×) | Ours is lower. Likely causes: viewer + xvfb on the CPU, a 1344 MHz CPU cap, and 1250 vs 1200 features (§7) |
+| Pipelined FPS | 28.0 (1.94×) | 21.2 (1.47×) | Ours is lower. Likely causes: viewer + xvfb on the CPU, CPU clocks held at ~1344 MHz by the governor, and 1250 vs 1200 features (§7) |
 | Tracking power mean / peak | 6.3 / 6.9 W (MH01) | 6.4 / 7.0 W (GPU arm) | Reproduced within 0.1 W |
 
 ---
@@ -172,10 +172,13 @@ Implications:
 
 - Tj stays between 42 and 54.4 °C in every run, with no throttling. The workload is thermally trivial
   for this board.
-- **The CPU cluster 0 frequency is pinned at 1344 MHz** (the most common value, 7283 samples), and
-  cluster 1 often idles at 729 MHz. The Orin Nano can run its CPUs faster in MAXN / MAXN_SUPER mode.
-  The board was apparently not run with `sudo nvpmodel -m 0 && sudo jetson_clocks`. Because the
-  tracking thread is latency-bound, **clocks are the cheapest lever for more FPS** (§7).
+- **The CPU clusters ran well below their maximum.** Cluster 0 sat mostly at 1344 MHz (7283
+  samples) and cluster 1 often at 729 MHz. The board was in **25W mode** (`nvpmodel -q` showed mode 1),
+  which allows up to 1728 MHz. The `schedutil` governor never raised the clocks under this bursty
+  load, and `jetson_clocks` was not run. Because the tracking thread is latency-bound, **pinning the
+  clocks with MAXN_SUPER + `jetson_clocks` is the cheapest lever for more FPS** (§7).
+  Caution: on the Orin Nano Super, `nvpmodel -m 0` is **15W**, not MAXN. Check the IDs with
+  `nvpmodel -p --verbose`; MAXN_SUPER is usually `-m 2`.
 
 ---
 
@@ -252,8 +255,8 @@ had 1–2 of the NaN aborts. Takeaways:
 
 ## 7. Recommendations, ranked by expected impact on FPS
 
-1. **Max clocks:** run `sudo nvpmodel -m 0` (MAXN / MAXN_SUPER) and `sudo jetson_clocks` before
-   benchmarking. The CPU was capped at 1344 MHz, and tracking is CPU-latency-bound. Expect a
+1. **Max clocks:** switch to MAXN_SUPER (`sudo nvpmodel -m 2` on the Orin Nano Super; check the ID
+   first) and run `sudo jetson_clocks` before benchmarking. The CPU mostly ran at 1344 MHz, and tracking is CPU-latency-bound. Expect a
    +10–25% gain at a small power cost.
 2. **Use `PIPELINE_FE=1` in deployment.** It is +47% FPS and −30% energy per frame. It is the only arm
    that comes close to real time.

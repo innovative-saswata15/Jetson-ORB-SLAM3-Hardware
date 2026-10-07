@@ -53,7 +53,8 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DREGISTER_TIM
 cmake --build build -j "$JOBS"
 
 # Verify the define took effect: PrintTimeStats only exists in an instrumented build.
-if nm -DC lib/libORB_SLAM3.so | grep -q 'Tracking::PrintTimeStats'; then
+# (no `grep -q`: it exits on the first match, nm gets SIGPIPE, and pipefail turns that into a failure)
+if nm -DC lib/libORB_SLAM3.so | grep -c 'Tracking::PrintTimeStats' >/dev/null; then
   echo "==> OK: instrumented build ready in $DEST"
   echo "    next: python3 $ROOT/repro/run_matrix.py instrumented --build-root $DEST"
 else
