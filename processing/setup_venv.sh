@@ -16,9 +16,13 @@ if [ "${1:-}" = "--light" ]; then LIGHT=1; shift; fi
 VENV="${1:-$HOME/venvs/ext}"
 PY="${PYTHON:-python3}"
 
+if [ -x "$VENV/bin/python" ] && ! "$VENV/bin/python" -m pip --version >/dev/null 2>&1; then
+  echo "==> $VENV is broken (no pip; an earlier venv creation failed): recreating"
+  rm -rf "$VENV"
+fi
 if [ ! -x "$VENV/bin/python" ]; then
   echo "==> creating $VENV with $($PY --version)"
-  "$PY" -m venv "$VENV" || { echo "ERROR: python3 -m venv failed (sudo apt install python3-venv)"; exit 1; }
+  "$PY" -m venv "$VENV" || { rm -rf "$VENV"; echo "ERROR: python3 -m venv failed: sudo apt install python3.10-venv (Jetson) / python3-venv"; exit 1; }
 fi
 "$VENV/bin/pip" install --upgrade pip wheel >/dev/null
 

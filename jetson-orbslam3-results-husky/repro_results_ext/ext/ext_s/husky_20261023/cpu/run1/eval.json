@@ -1,0 +1,32 @@
+{
+  "accuracy": {
+    "frames_ate_se3_cm": 69.13918732728385,
+    "frames_ate_sim3_cm": 8.662110365673199,
+    "frames_poses": 5324,
+    "frames_sim3_scale": 1.0704485356765838,
+    "frames_total": 5326,
+    "kf_ate_se3_cm": 67.9146765748472,
+    "kf_ate_sim3_cm": 8.65179756112506,
+    "kf_poses": 671,
+    "kf_sim3_scale": 1.0696994299823146,
+    "kf_total": 672,
+    "rel_segments": 2816,
+    "rrel_5_40_deg100m": 7.660060517544477,
+    "trel_5_40_pct": 5.391739624674665
+  },
+  "console": {
+    "cnn_active": false,
+    "cpu_orb": true,
+    "gpu_orb": false,
+    "loops": 0,
+    "maps": 1,
+    "merges": 0,
+    "new_maps": 0
+  },
+  "power": {
+    "samples": 409,
+    "vdd_in_mean_w": 9.081271393643032,
+    "vdd_in_peak_w": 9.854
+  },
+  "timing": {}
+}

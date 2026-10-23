@@ -1,0 +1,101 @@
+{
+  "accuracy": {
+    "frames_ate_se3_cm": 68.01665006243877,
+    "frames_ate_sim3_cm": 7.657460299445362,
+    "frames_poses": 5324,
+    "frames_sim3_scale": 1.0693385354773484,
+    "frames_total": 5326,
+    "kf_ate_se3_cm": 67.09534515488623,
+    "kf_ate_sim3_cm": 7.323252559098918,
+    "kf_poses": 681,
+    "kf_sim3_scale": 1.0685836807341795,
+    "kf_total": 682,
+    "rel_segments": 2816,
+    "rrel_5_40_deg100m": 7.432334174146103,
+    "trel_5_40_pct": 5.350597000305359
+  },
+  "console": {
+    "cnn_active": false,
+    "cpu_orb": false,
+    "gpu_orb": true,
+    "loops": 0,
+    "maps": 1,
+    "merges": 0,
+    "new_maps": 0
+  },
+  "power": {
+    "samples": 408,
+    "vdd_in_mean_w": 9.183372549019607,
+    "vdd_in_peak_w": 9.854
+  },
+  "timing": {
+    "Database Query": {
+      "mean_ms": 3.47009,
+      "std_ms": 2.04702
+    },
+    "KF Culling": {
+      "mean_ms": 14.42107,
+      "std_ms": 7.45706
+    },
+    "KF Insertion": {
+      "mean_ms": 19.04649,
+      "std_ms": 6.69613
+    },
+    "LBA": {
+      "mean_ms": 323.25032,
+      "std_ms": 184.61649
+    },
+    "LBA Edges": {
+      "mean_ms": 25440.36817,
+      "std_ms": 7622.19355
+    },
+    "LBA KF fixed": {
+      "mean_ms": 53.93408,
+      "std_ms": 33.65472
+    },
+    "LBA KF optimized": {
+      "mean_ms": 45.42283,
+      "std_ms": 18.08829
+    },
+    "LM Track": {
+      "mean_ms": 10.71404,
+      "std_ms": 2.86411
+    },
+    "MP Creation": {
+      "mean_ms": 48.92233,
+      "std_ms": 15.43069
+    },
+    "MP Culling": {
+      "mean_ms": 0.5101,
+      "std_ms": 0.76254
+    },
+    "New KF decision": {
+      "mean_ms": 0.24094,
+      "std_ms": 0.69817
+    },
+    "ORB Extraction": {
+      "mean_ms": 17.91655,
+      "std_ms": 4.75147
+    },
+    "Pose Prediction": {
+      "mean_ms": 5.13536,
+      "std_ms": 1.04603
+    },
+    "Stereo Matching": {
+      "mean_ms": 7.15377,
+      "std_ms": 0.91041
+    },
+    "Total Local Mapping": {
+      "mean_ms": 366.02689,
+      "std_ms": 210.10434
+    },
+    "Total Place Recognition": {
+      "mean_ms": 26.15131,
+      "std_ms": 15.9572
+    },
+    "Total Tracking": {
+      "mean_ms": 43.42745,
+      "std_ms": 6.14987
+    }
+  }
+}
