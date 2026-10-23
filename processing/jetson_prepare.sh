@@ -10,7 +10,8 @@
 # The reference is NOT recomputed here: it comes from the repository
 # (jetson-orbslam3-results-husky/reference/sequence/gt.csv). This script checks that the images it
 # extracts are exactly the ones the reference was built for (identical times.txt and settings.yaml).
-# Needs only the light venv (processing/setup_venv.sh --light). The bag is only read.
+# If ~/datasets/ext/SEQ_NAME was copied from the PC (runbook step 2, option A), the bag is not needed;
+# otherwise it is extracted from the bag with the light venv (processing/setup_venv.sh --light).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BAG="${1:-$HOME/datasets/external_raw/husky_20261023}"
@@ -19,14 +20,14 @@ SEQ="$HOME/datasets/ext/$NAME"
 REF="$ROOT/jetson-orbslam3-results-husky/reference/sequence"
 PY="${PY:-$HOME/venvs/ext/bin/python}"
 
-[ -f "$BAG/metadata.yaml" ] || { echo "ERROR: no metadata.yaml in $BAG"; exit 1; }
 [ -f "$REF/gt.csv" ] || { echo "ERROR: no reference at $REF (git pull?)"; exit 1; }
-"$PY" -c "import rosbags, cv2, numpy" || { echo "ERROR: run processing/setup_venv.sh --light first"; exit 1; }
 
 echo "==> 1/3 IR stereo -> $SEQ"
 if [ -f "$SEQ/settings.yaml" ] && [ -f "$SEQ/times.txt" ]; then
-  echo "    already extracted ($(wc -l < "$SEQ/times.txt") pairs)"
+  echo "    already present ($(wc -l < "$SEQ/times.txt") pairs; extracted here or copied from the PC) - bag not needed"
 else
+  [ -f "$BAG/metadata.yaml" ] || { echo "ERROR: no extracted sequence in $SEQ and no bag (metadata.yaml) in $BAG"; exit 1; }
+  "$PY" -c "import rosbags, cv2, numpy" || { echo "ERROR: run processing/setup_venv.sh --light first"; exit 1; }
   "$PY" -I "$ROOT/processing/bag_to_euroc.py" "$BAG" "$SEQ"
 fi
 

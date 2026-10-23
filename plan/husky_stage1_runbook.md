@@ -38,39 +38,52 @@ git push
 The commit holds about 7 MB: the reference, plus the code that builds and evaluates it. It contains
 no images and no bag.
 
-## 1. Jetson: code, bag and a light Python environment (once)
+## 1. Jetson: code and a light Python environment (once)
 
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware && git pull
 ls jetson-orbslam3-results-husky/reference/sequence/gt.csv        # the ground truth arrived
-
-sha256sum ~/datasets/external_raw/husky_20261023/husky_20261023_062755_0.db3
-#   must be 2877dab42281c4a5c4fa1205f5c3dddca66236801865f7adbea54e373f851bcd
 df -h ~                                                           # ~2 GB needed for the IR images
-
 processing/setup_venv.sh --light
 ```
-`--light` installs only what the Jetson needs into `~/venvs/ext`: `rosbags` (to read the bag
-without ROS), `numpy`, `scipy`, `opencv-python-headless` and `matplotlib`. It must end with `ok` for
-all five.
+`--light` installs only what the Jetson needs into `~/venvs/ext`: `rosbags`, `numpy`, `scipy`,
+`opencv-python-headless` and `matplotlib`. It must end with `ok` for all five. The report (step 4)
+needs it even if you copy the images (option A below).
 - The fusion stack (kiss-icp, gtsam) is **not** needed on the Jetson.
 - The system Python is untouched: `run_matrix.py` and `evaluate.py` keep using it.
 
-## 2. Jetson: extract the IR stereo and install the ground truth (~5–10 min)
+## 2. Jetson: get the IR stereo and install the ground truth
 
+The Jetson needs the IR stereo sequence in `~/datasets/ext/husky_20261023/`. There are two ways to get it.
+
+**Option A (recommended): copy the sequence the PC already extracted** (1.3 GB, about 10.7k files).
+This is the exact image set the ground truth was built for. Run on the **Jetson**, in tmux, so
+closing your terminal doesn't stop it:
+```bash
+tmux new -s xfer
+mkdir -p ~/datasets/ext
+rsync -a --partial --info=progress2 shiv@172.31.2.87:datasets/ext/husky_20261023 ~/datasets/ext/
+# PC password once, then Ctrl-b d; tmux attach -t xfer to check (Wi-Fi: ~5-15 min)
+```
+`rsync` verifies every file it copies. If the connection drops, run the same command again.
+
+**Option B: extract from the raw bag on the Jetson.** This needs the 20.7 GB bag at
+`~/datasets/external_raw/husky_20261023/` (`husky_20261023_062755_0.db3` + `metadata.yaml`,
+SHA-256 `2877dab42281c4a5c4fa1205f5c3dddca66236801865f7adbea54e373f851bcd`).
+`jetson_prepare.sh` extracts it automatically when the sequence folder is missing.
+
+**Then, either way:**
 ```bash
 cd ~/Jetson-ORB-SLAM3-Hardware
 processing/jetson_prepare.sh
 ```
 It does three things, and stops with `ERROR` if a check fails:
-1. **Extracts** `/camera/infra1` and `/camera/infra2` from the bag to `~/datasets/ext/husky_20261023/`.
-   That gives `mav0/cam0`, `mav0/cam1`, `times.txt`, and `settings.yaml` (their calibration with our
-   R6 ORB settings).
-2. **Checks** that `times.txt` and `settings.yaml` are byte-identical to the ones the ground truth was
-   built for, and that the image counts match (5326 left + 5326 right).
-3. **Installs** `gt.csv` and `reference_info.json` into the sequence folder.
+1. **Uses** the copied sequence, or **extracts** it from the bag if it is absent.
+2. **Checks** that `times.txt` and `settings.yaml` are byte-identical to the ones the ground truth
+   was built for (stored in the repository), and that there are 5326 left + 5326 right images.
+3. **Installs** the repository's `gt.csv` and `reference_info.json` into the sequence folder.
 
-It must end with `Ready.`. The step is safe to re-run: an existing extraction is reused and checked again.
+It must end with `Ready.`.
 
 ## 3. Jetson: run visual SLAM (in tmux, ~1.5–2 h)
 
@@ -136,8 +149,8 @@ After that, `jetson-orbslam3-results-husky/` holds the reference, the raw runs a
 ---
 
 ## Checklist
-- [ ] 0 pushed · 1 pulled, `gt.csv` present, hash OK, light venv OK
-- [ ] 2 `jetson_prepare.sh` ended with `Ready.`
+- [ ] 0 pushed · 1 pulled, `gt.csv` present, light venv OK
+- [ ] 2 sequence copied (option A) or bag present (option B); `jetson_prepare.sh` ended with `Ready.`
 - [ ] 3 15 visual-SLAM runs done (+ 3 timing runs)
 - [ ] 4 `HUSKY_REPORT.md` generated · 5 results on the PC
 
@@ -145,7 +158,8 @@ After that, `jetson-orbslam3-results-husky/` holds the reference, the raw runs a
 | Symptom | Fix |
 |---|---|
 | `run processing/setup_venv.sh --light first` | The light venv is missing a package. Re-run it and read the MISSING lines. |
-| `ERROR: times.txt differs from the reference's` | The images were extracted from a different bag or with a different tool. Check the bag's SHA-256, delete `~/datasets/ext/husky_20261023`, and re-run step 2. |
+| `ERROR: times.txt differs from the reference's` | The images come from a different bag or tool, or the copy is incomplete. Delete `~/datasets/ext/husky_20261023` and redo step 2 (option A: re-run the rsync). |
+| `ERROR: no extracted sequence … and no bag` | Neither option A nor B was done. Copy the sequence from the PC (option A). |
 | `ERROR: settings.yaml differs` | The calibration or ORB settings changed since the reference was built. Use the repository version of `processing/bag_to_euroc.py` and `Examples/Stereo/RealSense_D435.yaml`. |
 | run_matrix: `nothing to run` | `~/datasets/ext/husky_20261023/` lacks `times.txt` or `settings.yaml`. Re-run step 2. |
 | `cannot start: missing program …stereo_euroc` | Build the repository (Stage 1, Part D). |
