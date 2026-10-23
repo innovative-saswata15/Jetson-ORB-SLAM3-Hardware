@@ -74,6 +74,19 @@ def list_d435_sequences() -> list[str]:
     return sorted(p.name for p in root.iterdir() if (p / "times.txt").is_file())
 
 
+def ext_dir(name: str) -> Path:
+    return DATA_ROOT / "ext" / name
+
+
+def list_ext_sequences() -> list[str]:
+    """External recordings converted by processing/ (plan/evaluation_plan_stage_1.md)."""
+    root = DATA_ROOT / "ext"
+    if not root.is_dir():
+        return []
+    return sorted(p.name for p in root.iterdir()
+                  if all((p / f).is_file() for f in ("times.txt", "settings.yaml")))
+
+
 # ---------------------------------------------------------------- how each mode is run
 # Each mode names the repository's own (unmodified) program, its settings file, whether the
 # program always opens the Pangolin viewer (then it needs a display -> xvfb-run), and how
@@ -98,6 +111,10 @@ MODES = {
     "d435_s": dict(binary="Examples/Stereo/stereo_euroc",
                    settings="Examples/Stereo/RealSense_D435.yaml", viewer=True,
                    dataset="d435", gt_frame=None, output="euroc"),
+    # External D435 recordings with a lidar reference (plan/evaluation_plan_stage_1.md): the same
+    # program, but each sequence brings its own settings.yaml (their calibration) and gt.csv
+    "ext_s": dict(binary="Examples/Stereo/stereo_euroc", settings=None, viewer=True,
+                  dataset="ext", gt_frame="camera", output="euroc"),
 }
 
 # Arms: what changes between configurations. Everything is a run-time switch the
@@ -122,6 +139,9 @@ def mode_command(mode: str, seq: str, build_root: Path, settings_override: str |
     m = MODES[mode]
     binary = str(build_root / m["binary"])
     voc = str(build_root / VOCAB)
+    if mode == "ext_s":
+        d = ext_dir(seq)
+        return [binary, voc, settings_override or str(d / "settings.yaml"), str(d), str(d / "times.txt"), tag]
     settings = settings_override or m["settings"] or kitti_settings(seq)
     settings = str(build_root / settings) if not os.path.isabs(settings) else settings
     if mode in ("euroc_si", "euroc_mi"):
@@ -148,6 +168,8 @@ def ground_truth(mode: str, seq: str) -> Path | None:
         return tumvi_dir(seq) / "mav0/mocap0/data.csv"
     if ds == "kitti":
         return kitti_gt(seq)
+    if ds == "ext":
+        return ext_dir(seq) / "gt.csv"
     return None
 
 

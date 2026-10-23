@@ -16,6 +16,8 @@ Suites (paper table in brackets):
                     REGISTER_TIMES build (--build-root ../Jetson-ORB-SLAM3-timing) [Table 6]
   power             60 s idle, then MH01 stereo-inertial GPU, tegrastats @250 ms  [Sec. 4.1]
   d435              our own D435 recordings x {gpu, cpu, gpu_pipe} x 3 runs     [our hardware]
+  ext               external D435 recordings with lidar reference, x {gpu, cpu, gpu_pipe} x 5 runs
+                    (plan/evaluation_plan_stage_1.md)
 
 Every configuration uses the repository's own, unmodified programs and run-time switches:
   front-end  CPU_ORB=1 selects the reference CPU extractor (src/Tracking.cc:605)
@@ -41,7 +43,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import (ARMS, CNN_ENGINE_NAME, EUROC, KITTI, MODES, REPO, RESULTS_ROOT, TUMVI,  # noqa: E402
-                    git_commit, ground_truth, l4t_release, library_path, list_d435_sequences,
+                    git_commit, ground_truth, l4t_release, library_path, list_d435_sequences, list_ext_sequences,
                     mode_command, read_json, write_json)
 
 SUITES = {
@@ -53,6 +55,7 @@ SUITES = {
     "instrumented":     dict(jobs=[("euroc_si", "MH01"), ("euroc_mi", "V101")], arms=["gpu"], runs=1),
     "power":            dict(modes=["euroc_si"], arms=["gpu"], runs=1, seqs=["MH01"], idle_s=60, tegra_ms=250),
     "d435":             dict(modes=["d435_s"], arms=["gpu", "cpu", "gpu_pipe"], runs=3, seqs=None),
+    "ext":              dict(modes=["ext_s"], arms=["gpu", "cpu", "gpu_pipe"], runs=5, seqs=None),
 }
 JOB_TIMEOUT_S = 3 * 3600          # a hung run must not block the whole campaign
 CLEAR_ENV = ("CPU_ORB", "PIPELINE_FE", "ADAPTIVE_FE", "ADAPTIVE_LC", "DYNAMIC_MASK_ENGINE",
@@ -66,6 +69,8 @@ def say(msg: str) -> None:
 def settings_for(mode: str, loop: str, run_dir: Path, build_root: Path) -> str | None:
     if loop != "off":
         return None
+    if mode == "ext_s":
+        raise SystemExit("arm 'nolc' is not supported for external sequences")
     if mode == "euroc_si":
         return str(build_root / "Examples/Stereo-Inertial/EuRoC_noloop.yaml")
     # Other modes: a copy of the mode's settings with loop closing disabled, in the run folder.
@@ -91,7 +96,7 @@ def preflight(build_root: Path, jobs, engine: Path | None) -> list[str]:
         data = Path(cmd[3])
         if not data.exists():
             problems.append("missing data for %s %s: %s (repro/fetch_datasets.py)" % (mode, seq, data))
-        if gt is not None and not gt.exists():
+        if gt is not None and not gt.exists() and MODES[mode]["dataset"] != "ext":   # ext: scored later, on the PC
             problems.append("missing ground truth %s" % gt)
         if ARMS[arm]["loop"] == "cnn" and not (engine and engine.is_file()):
             problems.append("arm 'cnn' needs the TensorRT engine (--engine, runbook Part R3)")
@@ -214,7 +219,8 @@ def main() -> int:
     if "jobs" in s:
         pairs = [(m, q) for m, q in s["jobs"] if not a.seqs or q in a.seqs]
     else:
-        seqs = a.seqs or (s["seqs"] if s["seqs"] is not None else list_d435_sequences())
+        listed = list_ext_sequences() if a.suite == "ext" else list_d435_sequences()
+        seqs = a.seqs or (s["seqs"] if s["seqs"] is not None else listed)
         pairs = [(m, q) for m in s["modes"] for q in seqs]
     # Runs outermost: a partial campaign still has every sequence and arm equally covered,
     # and alternating arms spreads thermal drift over both.
