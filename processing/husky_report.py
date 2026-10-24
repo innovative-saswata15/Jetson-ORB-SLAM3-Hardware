@@ -131,18 +131,20 @@ def score(t_est, T_est, t_gt, T_gt):
     s, R, tr = umeyama(pe, pg, False)
     err = np.linalg.norm(pe @ R.T + tr - pg, axis=1)
     rp = rpe(T_est[ie], T_gt[ig], t_gt[ig], [1, 5, 10])
-    # horizontal ATE: align with yaw + xy only (the reference's height is its least certain axis)
-    A, Bg = pe[:, :2], pg[:, :2]
-    mA, mB = A.mean(0), Bg.mean(0)
-    U, _, Vt = np.linalg.svd((A - mA).T @ (Bg - mB))
-    R2 = Vt.T @ U.T
-    if np.linalg.det(R2) < 0:
-        Vt[1] *= -1
-        R2 = Vt.T @ U.T
-    e2 = np.linalg.norm((A - mA) @ R2.T + mB - Bg, axis=1)
-    ez = (pe @ R.T + tr - pg)[:, 2]
+    # Horizontal / vertical split of the SE(3)-aligned error. The reference world is gravity-aligned
+    # (z up); ORB-SLAM3's world is its first camera frame, so the split is done after alignment.
+    res_ = pe @ R.T + tr - pg
+    e2 = np.linalg.norm(res_[:, :2], axis=1)
+    ez = res_[:, 2]
+    # scale check without any alignment: straight-line distance ratios over ~10 s windows
+    seg = []
+    for k in range(0, len(pe) - 150, 150):
+        de = np.linalg.norm(pe[k + 150] - pe[k])
+        if de > 0.8:
+            seg.append(np.linalg.norm(pg[k + 150] - pg[k]) / de)
     return dict(n=len(ie), ate_se3_cm=se3 * 100, ate_sim3_cm=sim3 * 100, scale=scale, max_cm=float(err.max() * 100),
                 ate_xy_cm=float(np.sqrt(np.mean(e2 ** 2)) * 100), z_rms_cm=float(np.sqrt(np.mean(ez ** 2)) * 100),
+                seg_scale=float(np.median(seg)) if seg else None,
                 err=err, t=t_gt[ig], aligned=pe @ R.T + tr, rpe=rp)
 
 
@@ -264,10 +266,11 @@ def main() -> int:
     g = lambda kind, key: (lambda r: (r.get(kind) or {}).get(key))
     row("**ATE SE(3), keyframes [cm]** (paper Table 1 metric)", g("kf", "ate_se3_cm"))
     row("ATE SE(3), all frames [cm]", g("frames", "ate_se3_cm"))
-    row("ATE horizontal (yaw + xy alignment), all frames [cm]", g("frames", "ate_xy_cm"))
-    row("Height error RMS after SE(3) alignment [cm]", g("frames", "z_rms_cm"))
+    row("ATE horizontal part (after SE(3) alignment), all frames [cm]", g("frames", "ate_xy_cm"))
+    row("ATE vertical part (after SE(3) alignment), all frames [cm]", g("frames", "z_rms_cm"))
     row("ATE Sim(3), all frames [cm]", g("frames", "ate_sim3_cm"))
     row("Scale (Sim(3)), all frames", g("frames", "scale"), 4)
+    row("Scale from 10 s distance ratios (reference / ours), no alignment", g("frames", "seg_scale"), 4)
     row("Max position error [cm]", g("frames", "max_cm"), 1)
     for Ld in (1, 5, 10):
         row("RPE translation over %d m [%%]" % Ld, lambda r, Ld=Ld: (r.get("frames") or {}).get("rpe", {}).get(Ld, (None,))[0])
@@ -356,12 +359,19 @@ def main() -> int:
                            ("VDD_CPU_GPU_CV [W]", "vcg_w", 2), ("VDD_SOC [W]", "vsoc_w", 2),
                            ("CPU load, sum of 6 cores [%]", "cpu_pct", 0), ("GPU load GR3D [%]", "gr3d_pct", 1),
                            ("RAM peak [MB]", "ram_peak_mb", 0), ("Tj max [°C]", "tj_max", 1),
-                           ("Tracking window [s]", "window_s", 0)):
+                           ("Busy window incl. vocabulary load + shutdown [s]", "window_s", 0)):
         prow.append([label] + [f(med([P(key)(r) for r in runs[k]]), nd) for k, _ in ARMS])
     prow.append(["Energy per frame [J]"] + [f(med([P("energy_j")(r) / n_img if P("energy_j")(r) else None
                                                    for r in runs[k]]), 3) for k, _ in ARMS])
-    prow.append(["Real-time (window ≤ 1.05 × duration)"] + [
-        ("yes" if (med([P("window_s")(r) for r in runs[k]]) or 1e9) <= 1.05 * dur + 3 else "**no**") for k, _ in ARMS])
+    budget = 1000.0 * dur / max(n_img - 1, 1)                 # ms per frame at the camera rate
+
+    def realtime(k):
+        tt = (timing.get(k) or {}).get("Total Tracking") if timing else None
+        if tt:
+            return ("yes (%.1f ms < %.1f ms)" % (tt, budget)) if tt < budget else ("**no** (%.1f ms > %.1f ms)" % (tt, budget))
+        return "n/a (needs the timing runs)"
+    prow.append(["Real-time: mean tracking time vs the camera's %.1f ms frame budget" % budget] +
+                [realtime(k) for k, _ in ARMS])
     w("| Metric | " + " | ".join(lab for _, lab in ARMS) + " |")
     w("|" + "---|" * (len(ARMS) + 1))
     for rr in prow:

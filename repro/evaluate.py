@@ -214,8 +214,11 @@ def parse_tegrastats(path: Path) -> dict:
 def score_euroc_like(run: Path, tag: str, gt_path: Path) -> dict:
     res = {}
     t_gt, T_gt = load_gt_csv(gt_path)
-    for kind, fname in (("kf", "kf_%s.txt" % tag), ("frames", "f_%s.txt" % tag)):
+    for kind, fname, alt in (("kf", "kf_%s.txt" % tag, "KeyFrameTrajectory.txt"),
+                             ("frames", "f_%s.txt" % tag, "CameraTrajectory.txt")):
         f = run / fname
+        if not f.is_file():
+            f = run / alt                     # rgbd_tum / TUM-style writers
         if not f.is_file():
             continue
         t_est, T_est = load_tum(f)

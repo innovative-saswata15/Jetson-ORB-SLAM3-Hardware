@@ -17,6 +17,8 @@ Suites (paper table in brackets):
   power             60 s idle, then MH01 stereo-inertial GPU, tegrastats @250 ms  [Sec. 4.1]
   d435              our own D435 recordings x {gpu, cpu, gpu_pipe} x 3 runs     [our hardware]
   ext               external D435 recordings with lidar reference, x {gpu, cpu, gpu_pipe} x 5 runs
+  abl               ablation variants of an external recording (--seqs, --arms), x 3 runs
+                    (plan/ablation_plan_husky.md)
                     (plan/evaluation_plan_stage_1.md)
 
 Every configuration uses the repository's own, unmodified programs and run-time switches:
@@ -43,7 +45,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import (ARMS, CNN_ENGINE_NAME, EUROC, KITTI, MODES, REPO, RESULTS_ROOT, TUMVI,  # noqa: E402
-                    git_commit, ground_truth, l4t_release, library_path, list_d435_sequences, list_ext_sequences,
+                    ext_mode, git_commit, ground_truth, l4t_release, library_path, list_d435_sequences, list_ext_sequences,
                     mode_command, read_json, write_json)
 
 SUITES = {
@@ -56,6 +58,8 @@ SUITES = {
     "power":            dict(modes=["euroc_si"], arms=["gpu"], runs=1, seqs=["MH01"], idle_s=60, tegra_ms=250),
     "d435":             dict(modes=["d435_s"], arms=["gpu", "cpu", "gpu_pipe"], runs=3, seqs=None),
     "ext":              dict(modes=["ext_s"], arms=["gpu", "cpu", "gpu_pipe"], runs=5, seqs=None),
+    # ablation cells: each variant folder's mode.txt picks the mode (plan/ablation_plan_husky.md)
+    "abl":              dict(modes=["ext_auto"], arms=["gpu"], runs=3, seqs=None),
 }
 JOB_TIMEOUT_S = 3 * 3600          # a hung run must not block the whole campaign
 CLEAR_ENV = ("CPU_ORB", "PIPELINE_FE", "ADAPTIVE_FE", "ADAPTIVE_LC", "DYNAMIC_MASK_ENGINE",
@@ -69,8 +73,8 @@ def say(msg: str) -> None:
 def settings_for(mode: str, loop: str, run_dir: Path, build_root: Path) -> str | None:
     if loop != "off":
         return None
-    if mode == "ext_s":
-        raise SystemExit("arm 'nolc' is not supported for external sequences")
+    if MODES[mode]["dataset"] == "ext":
+        raise SystemExit("arm 'nolc' is not supported for external sequences: use the __nolc ablation variant")
     if mode == "euroc_si":
         return str(build_root / "Examples/Stereo-Inertial/EuRoC_noloop.yaml")
     # Other modes: a copy of the mode's settings with loop closing disabled, in the run folder.
@@ -114,7 +118,8 @@ def run_one(run_dir: Path, mode: str, seq: str, arm: str, k: int, build_root: Pa
         settings = "(loopClosing: 0)" if a["loop"] == "off" else None
         cmd = mode_command(mode, seq, build_root, None, tag)
         print("   [dry] %s  env:%s%s  engine:%s  settings:%s\n         %s%s" % (
-            run_dir, " CPU_ORB=1" if a["front"] == "cpu" else "", " PIPELINE_FE=1" if a["pipe"] else "",
+            run_dir, " CPU_ORB=1" if a["front"] == "cpu" else "",
+            (" PIPELINE_FE=1" if a["pipe"] else "") + "".join(" %s=%s" % kv for kv in a.get("env", {}).items()),
             "linked" if use_engine else "none", settings or "default",
             "xvfb-run ... " if MODES[mode]["viewer"] else "", " ".join(cmd)))
         return True
@@ -140,6 +145,7 @@ def run_one(run_dir: Path, mode: str, seq: str, arm: str, k: int, build_root: Pa
         env["CPU_ORB"] = "1"
     if a["pipe"]:
         env["PIPELINE_FE"] = "1"
+    env.update(a.get("env", {}))
 
     meta = dict(suite=suite, mode=mode, seq=seq, arm=arm, run=k, tag=tag, cmd=cmd,
                 front=a["front"], pipe=a["pipe"], loop=a["loop"], engine_linked=use_engine,
@@ -167,7 +173,7 @@ def run_one(run_dir: Path, mode: str, seq: str, arm: str, k: int, build_root: Pa
         except subprocess.TimeoutExpired:
             tegra.kill()
     # Trajectory written? (programs may still exit non-zero while tearing down their threads)
-    out_ok = (run_dir / "CameraTrajectory.txt").is_file() if MODES[mode]["output"] == "kitti" \
+    out_ok = (run_dir / "CameraTrajectory.txt").is_file() if MODES[mode]["output"] in ("kitti", "tum") \
         else (run_dir / ("kf_%s.txt" % tag)).is_file()
     meta.update(done=True, exit_code=rc, wall_s=round(time.time() - t0, 1), trajectory_written=out_ok,
                 timing_stats=(run_dir / "ExecMean.txt").is_file())
@@ -219,9 +225,9 @@ def main() -> int:
     if "jobs" in s:
         pairs = [(m, q) for m, q in s["jobs"] if not a.seqs or q in a.seqs]
     else:
-        listed = list_ext_sequences() if a.suite == "ext" else list_d435_sequences()
+        listed = list_ext_sequences() if a.suite in ("ext", "abl") else list_d435_sequences()
         seqs = a.seqs or (s["seqs"] if s["seqs"] is not None else listed)
-        pairs = [(m, q) for m in s["modes"] for q in seqs]
+        pairs = [(ext_mode(q) if m == "ext_auto" else m, q) for m in s["modes"] for q in seqs]
     # Runs outermost: a partial campaign still has every sequence and arm equally covered,
     # and alternating arms spreads thermal drift over both.
     jobs = [(m, q, arm, k) for k in range(1, runs + 1) for (m, q) in pairs for arm in arms]

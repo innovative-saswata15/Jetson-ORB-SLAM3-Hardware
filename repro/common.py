@@ -78,6 +78,12 @@ def ext_dir(name: str) -> Path:
     return DATA_ROOT / "ext" / name
 
 
+def ext_mode(name: str) -> str:
+    """Mode of an external sequence folder: its mode.txt (ablation variants), else stereo."""
+    f = ext_dir(name) / "mode.txt"
+    return f.read_text().strip() if f.is_file() else "ext_s"
+
+
 def list_ext_sequences() -> list[str]:
     """External recordings converted by processing/ (plan/evaluation_plan_stage_1.md)."""
     root = DATA_ROOT / "ext"
@@ -115,6 +121,16 @@ MODES = {
     # program, but each sequence brings its own settings.yaml (their calibration) and gt.csv
     "ext_s": dict(binary="Examples/Stereo/stereo_euroc", settings=None, viewer=True,
                   dataset="ext", gt_frame="camera", output="euroc"),
+    # Ablation variants of an external recording (plan/ablation_plan_husky.md). The variant folder's
+    # mode.txt names the mode; its gt.csv is in that mode's output frame (camera, IMU body, colour camera).
+    "ext_m":    dict(binary="Examples/Monocular/mono_euroc", settings=None, viewer=False,
+                     dataset="ext", gt_frame="camera", output="euroc"),
+    "ext_mi":   dict(binary="Examples/Monocular-Inertial/mono_inertial_euroc", settings=None, viewer=False,
+                     dataset="ext", gt_frame="body", output="euroc"),
+    "ext_si":   dict(binary="Examples/Stereo-Inertial/stereo_inertial_euroc", settings=None, viewer=False,
+                     dataset="ext", gt_frame="body", output="euroc"),
+    "ext_rgbd": dict(binary="Examples/RGB-D/rgbd_tum", settings=None, viewer=True,
+                     dataset="ext", gt_frame="camera", output="tum"),
 }
 
 # Arms: what changes between configurations. Everything is a run-time switch the
@@ -124,6 +140,9 @@ MODES = {
 #   loop  : "auto" (CNN if the TensorRT engine is supplied, else DBoW2), "cnn", "dbow2",
 #           "off" (settings with loopClosing: 0, i.e. Examples/Stereo-Inertial/EuRoC_noloop.yaml)
 ARMS = {
+    # env: extra run-time switches the repository reads (src/Tracking.cc, src/LoopClosing.cc)
+    "adaptive_fe": dict(front="gpu", pipe=False, loop="auto", env={"ADAPTIVE_FE": "1"}),   # IMU_STEREO only
+    "adaptive_lc": dict(front="gpu", pipe=False, loop="auto", env={"ADAPTIVE_LC": "1"}),   # inertial loops only
     "gpu":       dict(front="gpu", pipe=False, loop="auto"),
     "cpu":       dict(front="cpu", pipe=False, loop="auto"),
     "gpu_pipe":  dict(front="gpu", pipe=True,  loop="auto"),
@@ -139,9 +158,12 @@ def mode_command(mode: str, seq: str, build_root: Path, settings_override: str |
     m = MODES[mode]
     binary = str(build_root / m["binary"])
     voc = str(build_root / VOCAB)
-    if mode == "ext_s":
+    if mode in ("ext_s", "ext_m", "ext_mi", "ext_si"):
         d = ext_dir(seq)
         return [binary, voc, settings_override or str(d / "settings.yaml"), str(d), str(d / "times.txt"), tag]
+    if mode == "ext_rgbd":                     # rgbd_tum: no tag; writes CameraTrajectory.txt (TUM, seconds)
+        d = ext_dir(seq)
+        return [binary, voc, settings_override or str(d / "settings.yaml"), str(d), str(d / "assoc.txt")]
     settings = settings_override or m["settings"] or kitti_settings(seq)
     settings = str(build_root / settings) if not os.path.isabs(settings) else settings
     if mode in ("euroc_si", "euroc_mi"):
