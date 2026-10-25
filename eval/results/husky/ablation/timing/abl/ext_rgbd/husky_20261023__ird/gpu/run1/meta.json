@@ -1,0 +1,32 @@
+{
+  "arm": "gpu",
+  "build_root": "/home/orb-slam3/Jetson-ORB-SLAM3-timing",
+  "cmd": [
+    "xvfb-run",
+    "-a",
+    "-s",
+    "-screen 0 1280x1024x24",
+    "/home/orb-slam3/Jetson-ORB-SLAM3-timing/Examples/RGB-D/rgbd_tum",
+    "/home/orb-slam3/Jetson-ORB-SLAM3-timing/Vocabulary/ORBvoc.txt",
+    "/home/orb-slam3/datasets/ext/husky_20261023__ird/settings.yaml",
+    "/home/orb-slam3/datasets/ext/husky_20261023__ird",
+    "/home/orb-slam3/datasets/ext/husky_20261023__ird/assoc.txt"
+  ],
+  "commit": "f06cee0",
+  "done": true,
+  "engine_linked": false,
+  "exit_code": 0,
+  "front": "gpu",
+  "l4t": "# R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026",
+  "loop": "auto",
+  "mode": "ext_rgbd",
+  "pipe": false,
+  "run": 1,
+  "seq": "husky_20261023__ird",
+  "settings": "default",
+  "suite": "abl",
+  "tag": "run",
+  "timing_stats": true,
+  "trajectory_written": true,
+  "wall_s": 430.2
+}

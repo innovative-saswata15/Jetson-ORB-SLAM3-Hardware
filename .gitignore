@@ -136,3 +136,17 @@ output/
 !prebuilt/orin-jp6/bin/*
 !prebuilt/orin-jp6/licenses/
 !prebuilt/orin-jp6/licenses/*
+
+# ---------------------------------------------------------------------------------------------
+# Our evaluation work (eval/): local-only material, kept out of the repository
+# ---------------------------------------------------------------------------------------------
+# reference papers, demo video, planning notes and presentation drafts
+2608.17874v1.pdf
+Data_Flow_ORB-SLAM_for_Real-time_Performance_on_Embedded_GPU_Boards.pdf
+verification.mp4
+plan/
+presentation/
+# per-run TensorRT engine links written by the benchmark runner
+eval/results/**/cosplace_r50_512.fp16.trt
+# The catch-all "time*" rule above would hide the reference sequence's frame list
+!eval/results/husky/reference/sequence/times.txt
