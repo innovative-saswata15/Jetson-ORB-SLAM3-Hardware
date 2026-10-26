@@ -36,10 +36,10 @@ questions:
 
 | Question | How we test it | What we measure |
 |---|---|---|
-| **GPU as accurate as CPU?** | GPU and CPU versions on the same recording, 5 runs each | distance from the true path |
-| **Can the pipeline run in real time?** | time every processing step of every frame | time per frame vs. time between frames |
-| **How much compute does it take?** | log the Jetson's power and compute metrics | power, CPU, GPU and memory use |
-| **Ablations on sensors and settings?** | change one sensor or setting at a time | error and power vs. the default setup |
+| **GPU as accurate as CPU?** | Run GPU and CPU versions on the same recording, 5 times each | Distance from the ground-truth path (ATE) |
+| **Can the pipeline run in real time?** | Find the processing time of every frame | Processing time vs. time between camera frames |
+| **How much compute does it take?** | Log the Jetson's power, CPU, GPU and memory during every run | Peak power, CPU, GPU and memory use |
+| **Ablations on sensors and settings?** | Change one sensor or setting at a time | Metrics compared with the default setup |
 
 ## 3. Approach
 
@@ -138,7 +138,7 @@ the route (about 21 cm); for the GPU version it is below 6.4 cm half the time an
 | | GPU | CPU | CPU, parallel |
 |---|---|---|---|
 | Tracking, per frame | 43.4 ms | 51.7 ms | 27.0 ms |
-| ORB extraction | 17.9 ms | 26.6 ms | hidden |
+| ORB extraction | 17.9 ms | 26.6 ms | Hidden |
 | Peak CPU (6 cores) | 57 % | 60 % | 61 % |
 | Peak memory (7.6 GB) | 31 % | 31 % | 32 % |
 | Peak GPU load | 31 % | 0 % | 0 % |
