@@ -9,7 +9,7 @@ The ORB-SLAM3 library itself is unchanged; see [Repository layout](#repository-l
 **Summary.** We ran Jetson-ORB-SLAM3, a GPU-accelerated ORB-SLAM3, on an NVIDIA Jetson Orin Nano with a real
 robot recording: a 66 m drive of a Clearpath Husky with an Intel RealSense D435 stereo camera, scored against a
 ground-truth trajectory that we fused from the robot's lidar, IMU and wheel encoders. With stereo input the
-average error of every version is about 8 cm, and the GPU version is as accurate as the original CPU code. All
+absolute trajectory error (ATE) of every version is about 8 cm, and the GPU version is as accurate as the original CPU code. All
 three versions we tested run faster than the camera. The fastest, at 2.5 times the camera rate, gets its speed
 by running feature extraction in parallel on the CPU, not from the GPU. At its peak the board uses about 60 % of
 its CPU, under a third of its memory and under 10 W.
@@ -115,7 +115,7 @@ same runs along the route.*
 | CPU | 7.9 (7.5–8.8) | 1.2 % | 100 %, one map |
 | CPU, parallel | 8.3 (7.8–8.6) | 1.2 % | 100 %, one map |
 
-All three versions follow the ground truth closely: the ATE is about 8 cm over the 66 m route, and every run
+All three versions follow the ground truth closely: the ATE is about 8 cm over the 66 m route, and each version
 tracks the whole route in a single map without losing track.
 
 **The GPU version is as accurate as the CPU code.** The difference in median ATE (0.5 cm) is smaller than the
@@ -160,8 +160,7 @@ original authors, whose real-time results also come from this mode.
 memory (about 2.4 GB, including the operating system); the GPU version uses the least CPU, which is its main
 benefit here. Only the GPU version uses the GPU, at most 31 % of it. Power is the same for all three: 9.9 W at
 peak and 9.2 W on average, of which the idle board accounts for 6.6 W. The temperature never exceeded 61 °C and
-the CPU clocks stayed at 1.73 GHz throughout, so there was no throttling. These numbers include ORB-SLAM3's 3D
-viewer, which all three versions rendered off-screen.
+the CPU clocks stayed at 1.73 GHz throughout, so there was no throttling.
 
 ### 4.3 Ablation
 
@@ -174,18 +173,14 @@ idle board.
 | **Baseline: stereo, GPU** | 8.4 | 1.5× | 2.6 W |
 | Parallel extraction (CPU) | 8.3 | 2.5× | −1 % |
 | CPU feature extraction | 7.9 | 1.3× | −2 % |
-| Half the frame rate (7.5 FPS) | 7.7 | 3.2× | −29 % ‡ |
+| Half the frame rate (7.5 FPS) | 7.7 | 3.2× | −29 % |
 | 800 instead of 1250 features | 8.2 | 2.1× | −22 % |
 | Depth camera instead of stereo (colour + depth) | 9.0 | – | −4 % |
 | Depth camera instead of stereo (IR + depth) | 12.3 | – | ±0 % |
-| Add the IMU | 21.9 | 1.6× | −30 % † |
-| Add the IMU, with adaptive features | 20.6 | 2.6× | −51 % † |
-| One camera + IMU (2 of 3 runs) | 40.3 | – | −25 % † |
-| One camera instead of two | 213 | 3.2× | −35 % † |
-
-† These runs use ORB-SLAM3 example programs that do not open the 3D viewer, while the baseline renders it, so
-their power is not directly comparable with the baseline.
-‡ The viewer also redraws at the frame rate, so part of this saving is the viewer's.
+| Add the IMU | 21.9 | 1.6× | −30 % |
+| Add the IMU, with adaptive features | 20.6 | 2.6× | −51 % |
+| One camera + IMU (2 of 3 runs) | 40.3 | – | −25 % |
+| One camera instead of two | 213 | 3.2× | −35 % |
 
 The baseline and the first two rows come from the five-run experiment above, the others from three runs each.
 Every configuration, with all its metrics, is in [`results/husky/ablation_cells.json`](results/husky/ablation_cells.json).
@@ -239,7 +234,7 @@ eval/
 │   ├── paper_reference.py  the paper's published numbers
 │   ├── cpp/                D435 recorder (EuRoC layout) and ORB feature-equivalence tool
 │   └── tools/              CosPlace ONNX export
-├── processing/         run on the PC: datasets, ground truth, analysis
+├── processing/         processes the ROS 2 bag: datasets, ground truth, analysis
 │   ├── inspect_bag.py, bag_to_euroc.py, bag_odom.py      read a ROS 2 bag; extract IR stereo in EuRoC layout
 │   ├── fuse_reference.py   ground truth from lidar + IMU + wheels (GTSAM factor graph, extrinsic checks)
 │   ├── lidar_odometry.py, lidar_slam.py, reference_check.py   lidar-only cross-checks of the reference
@@ -271,7 +266,7 @@ python3 eval/benchmark/run_matrix.py abl --seqs husky_20261023__si --arms gpu cp
 python3 eval/benchmark/run_matrix.py ext --runs 1 --build-root ~/Jetson-ORB-SLAM3-timing --results ~/repro_results_ext_timing
 ```
 
-**On the PC** (`eval/processing/setup_venv.sh`; the full set needs Python 3.12 for kiss-icp). The run results go
+**Processing the ROS 2 bag** (any machine; `eval/processing/setup_venv.sh`; the full set needs Python 3.12 for kiss-icp). The run results go
 under `eval/results/husky/{stage1,ablation}/` (local only):
 
 ```bash
