@@ -43,9 +43,9 @@ questions:
 
 ## 3. Approach
 
-<img src="figures/frame.jpg" width="420" alt="A left IR frame from the Husky recording with its ORB features">
+<img src="figures/frame_slam.png" width="420" alt="ORB-SLAM3's view of the Husky recording, with its tracked features">
 
-*A left IR frame from the Husky recording, with its ORB features (OpenCV, 1250 features).*
+*ORB-SLAM3's view of the Husky recording, with the features it tracks (green) and its status line.*
 
 ```mermaid
 flowchart LR
@@ -165,37 +165,44 @@ the CPU clocks stayed at 1.73 GHz throughout, so there was no throttling.
 ### 4.3 Ablation
 
 One change at a time from the stereo GPU baseline. Speed is the tracking rate relative to the input rate
-(instrumented build; "–": not timed). Power is the change in SLAM power, i.e. the module's power above the 6.6 W
-idle board.
+(instrumented build; "–": not timed). CPU load is the mean CPU use summed over the six cores. Power is the change
+in SLAM power, i.e. the module's power above the 6.6 W idle board.
 
-| Change from the baseline | ATE [cm] | Speed | Power |
-|---|---:|---:|---:|
-| **Baseline: stereo, GPU** | 8.4 | 1.5× | 2.6 W |
-| Parallel extraction (CPU) | 8.3 | 2.5× | −1 % |
-| CPU feature extraction | 7.9 | 1.3× | −2 % |
-| Half the frame rate (7.5 FPS) | 7.7 | 3.2× | −29 % |
-| 800 instead of 1250 features | 8.2 | 2.1× | −22 % |
-| Depth camera instead of stereo (colour + depth) | 9.0 | – | −4 % |
-| Depth camera instead of stereo (IR + depth) | 12.3 | – | ±0 % |
-| Add the IMU | 21.9 | 1.6× | −30 % |
-| Add the IMU, with adaptive features | 20.6 | 2.6× | −51 % |
-| One camera + IMU (2 of 3 runs) | 40.3 | – | −25 % |
-| One camera instead of two | 213 | 3.2× | −35 % |
+| Change from the baseline | ATE [cm] | Speed | CPU load | Power |
+|---|---:|---:|---:|---:|
+| **Baseline: stereo, GPU** | 8.4 | 1.5× | 252 % | 2.6 W |
+| CPU feature extraction | 7.9 | 1.3× | 280 % | −2 % |
+| Parallel CPU feature extraction | 8.3 | 2.5× | 284 % | −1 % |
+| Half frame rate (7.5 FPS) | 7.7 | 3.2× | 172 % | −29 % |
+| Fewer features (800 instead of 1250) | 8.2 | 2.1× | 198 % | −22 % |
+| RGB-D mode | 9.0 | – | 248 % | −4 % |
+| Stereo-inertial mode | 21.9 | 1.6× | 146 % | −30 % |
+| Mono-inertial mode | 40.3 | – | 157 % | −25 % |
+| Monocular mode | 213 | 3.2× | 129 % | −35 % |
 
-The baseline and the first two rows come from the five-run experiment above, the others from three runs each.
-Every configuration, with all its metrics, is in [`results/husky/ablation_cells.json`](results/husky/ablation_cells.json).
+The baseline and the first two rows come from the five-run experiment above, the others from three runs each. Every
+configuration is a built-in mode or setting of ORB-SLAM3, or a switch of Jetson-ORB-SLAM3. Every configuration we
+ran, with all its metrics, is in [`results/husky/ablation_cells.json`](results/husky/ablation_cells.json).
 
-**Stereo is what keeps the error low.** With one camera instead of two the error grows 25-fold, to about two
-metres: a single camera cannot measure depth, so the scale of the map drifts along the route even after the
-best-fit alignment. A depth camera in place of stereo keeps the error close to the baseline with the colour image
-(9.0 cm) but not with the IR image (12.3 cm).
+**The front end changes speed and CPU, not accuracy.** CPU and parallel CPU feature extraction keep the error within
+the run-to-run variation and draw the same power. Both use more CPU than the GPU baseline (280 and 284 % against
+252 %): the first because extraction runs on the CPU, the second because it puts a second core to work, which is
+what makes it the fastest.
 
-**The IMU does not help on this drive.** Adding it raises the error from 8.4 to about 22 cm. Most likely the robot
-moves too gently and slowly for the IMU to estimate its own biases, so it adds noise rather than information. In
-this mode ORB-SLAM3 also keeps about half as many keyframes (369 instead of 682 in the instrumented runs).
+**Halving the frame rate or using fewer features costs no accuracy.** Both keep the error at the baseline level and
+lower CPU load by 32 and 22 % and SLAM power by 29 and 22 %. With 800 features the tracking rate also rises to 2.1
+times the input rate.
 
-**Halving the frame rate or using 800 features costs no accuracy.** Both keep the error at the baseline level and
-lower SLAM power by 29 and 22 %. With 800 features the tracking rate also rises to 2.1 times the input rate.
+**Stereo is what keeps the error low.** In monocular mode the error grows 25-fold, to about two metres: a single
+camera cannot measure depth, so the scale of the map drifts along the route even after the best-fit alignment.
+Adding the IMU to the single camera (mono-inertial mode) recovers much of that, but still leaves about 40 cm. RGB-D
+mode, which uses the colour image and the camera's own depth image instead of the second camera, keeps the error
+close to the baseline (9.0 cm).
+
+**The IMU does not help on this drive.** Stereo-inertial mode raises the error from 8.4 to about 22 cm. Most likely
+the robot moves too gently and slowly for the IMU to estimate its own biases, so it adds noise rather than
+information. It does use less CPU (146 %), because in this mode ORB-SLAM3 keeps about half as many keyframes (369
+instead of 682 in the instrumented runs).
 
 ## 5. Future work
 
