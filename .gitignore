@@ -138,8 +138,8 @@ output/
 !prebuilt/orin-jp6/licenses/*
 
 # ---------------------------------------------------------------------------------------------
-# Our evaluation work (eval/): only code, the final PDFs, the Husky results summary and the
-# ground truth are tracked; everything else stays local
+# Our evaluation work (eval/): only code, eval/README.md (the report) with its figures, the ablation
+# table and the ground truth are tracked; everything else stays local
 # ---------------------------------------------------------------------------------------------
 # reference papers, demo video, planning notes and presentation drafts (repository root)
 /2608.17874v1.pdf
@@ -147,13 +147,12 @@ output/
 /verification.mp4
 /plan/
 /presentation/
-# report and slides: only the final PDFs (LaTeX sources, figures, figure scripts and notes stay local)
-/eval/report/*
-!/eval/report/report.pdf
-/eval/presentation/*
-!/eval/presentation/presentation.pdf
-# results: only results/husky/README.md, ablation_cells.json and reference/ (the ground truth and how it
-# was built). Raw run outputs, per-run JSON, generated run reports and our D435 campaigns stay local.
+# report and slides stay local (PDFs, LaTeX sources, figures, figure scripts, notes); the report's content
+# is in eval/README.md, with its figures in eval/figures/
+/eval/report/
+/eval/presentation/
+# results: only results/husky/ablation_cells.json and reference/ (the ground truth and how it was built).
+# Raw run outputs, per-run JSON, generated run reports and our D435 campaigns stay local.
 /eval/results/d435_*/
 /eval/results/husky/stage1/
 /eval/results/husky/ablation/
