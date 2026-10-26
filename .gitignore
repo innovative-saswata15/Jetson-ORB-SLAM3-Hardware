@@ -138,15 +138,27 @@ output/
 !prebuilt/orin-jp6/licenses/*
 
 # ---------------------------------------------------------------------------------------------
-# Our evaluation work (eval/): local-only material, kept out of the repository
+# Our evaluation work (eval/): only code, the final PDFs, the Husky results summary and the
+# ground truth are tracked; everything else stays local
 # ---------------------------------------------------------------------------------------------
-# reference papers, demo video, planning notes and presentation drafts
-2608.17874v1.pdf
-Data_Flow_ORB-SLAM_for_Real-time_Performance_on_Embedded_GPU_Boards.pdf
-verification.mp4
-plan/
-presentation/
-# per-run TensorRT engine links written by the benchmark runner
-eval/results/**/cosplace_r50_512.fp16.trt
+# reference papers, demo video, planning notes and presentation drafts (repository root)
+/2608.17874v1.pdf
+/Data_Flow_ORB-SLAM_for_Real-time_Performance_on_Embedded_GPU_Boards.pdf
+/verification.mp4
+/plan/
+/presentation/
+# report and slides: only the final PDFs (LaTeX sources, figures, figure scripts and notes stay local)
+/eval/report/*
+!/eval/report/report.pdf
+/eval/presentation/*
+!/eval/presentation/presentation.pdf
+# results: only results/husky/README.md, ablation_cells.json and reference/ (the ground truth and how it
+# was built). Raw run outputs, per-run JSON, generated run reports and our D435 campaigns stay local.
+/eval/results/d435_*/
+/eval/results/husky/stage1/
+/eval/results/husky/ablation/
+/eval/results/husky/ANALYSIS.md
+# Python caches
+__pycache__/
 # The catch-all "time*" rule above would hide the reference sequence's frame list
-!eval/results/husky/reference/sequence/times.txt
+!/eval/results/husky/reference/sequence/times.txt
